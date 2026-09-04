@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pipeline — earn $OIL, no Bot needed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jersey+15&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   PIPELINE — game #5 (Finn mini-game #1 · Snake-variant faucet)
+   Design: FDL v5 (plum #5f4c57, amber #f2a03d $OIL/win,
+   Jersey 15 + Plus Jakarta Sans, one-viewport, real Bots).
+   The WALLET + CLAIM layer is lifted byte-faithfully from the
+   proven Flappy Bot build; only the memo namespace (PIPE), the
+   earn metric (len), the domain string and the mobile action
+   tag differ. TEST_MODE gates RPC + network together.
+   ============================================================ */
+:root{
+  --plum:#5f4c57; --plum-deep:#3e323a; --amber:#f2a03d; --electric:#3a6ff7;
+  --peach:#f5c8a0; --cream:#fdf3e7; --ink:#2a2230; --muted:#8b7f88;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px;
+  --r-sm:8px; --r-md:14px; --r-lg:18px; --r-xl:22px;
+  --sh1:0 1px 3px rgba(62,50,58,.12); --sh2:0 4px 14px rgba(62,50,58,.16); --sh3:0 12px 34px rgba(62,50,58,.24);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100dvh;overflow:hidden;background:var(--cream);color:var(--ink);
+  font-family:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,sans-serif;}
+.wrap{height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;padding:0 var(--s3);}
+
+/* test banner */
+#testbar{background:#c0392b;color:#fff;text-align:center;font-weight:700;font-size:12px;
+  padding:5px;letter-spacing:.4px;flex:0 0 auto;}
+#testbar.hide{display:none;}
+
+/* topbar */
+.topbar{flex:0 0 auto;display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s1) var(--s2);}
+.eyebrow{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#fff;
+  background:var(--plum);padding:4px 9px;border-radius:20px;}
+.title{font-family:"Jersey 15",sans-serif;font-size:30px;line-height:1;color:var(--plum);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+.info{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--plum);color:var(--plum);
+  background:transparent;font-weight:700;font-size:15px;flex:0 0 auto;}
+
+/* quick facts — the load-bearing facts, never hidden */
+.facts{flex:0 0 auto;display:flex;gap:var(--s1);background:#fff;border:1px solid #efe2d4;
+  border-radius:var(--r-md);padding:var(--s2) var(--s3);box-shadow:var(--sh1);font-size:11.5px;font-weight:600;}
+.facts div{flex:1;text-align:center;color:var(--muted);}
+.facts b{display:block;color:var(--ink);font-size:12.5px;}
+.facts .amber b{color:var(--amber);}
+
+/* wallet bar */
+.wallet{flex:0 0 auto;display:flex;align-items:center;gap:var(--s3);margin-top:var(--s2);
+  background:#fff;border:1px solid #efe2d4;border-radius:var(--r-md);padding:var(--s2) var(--s3);box-shadow:var(--sh1);}
+.wallet .st{flex:1;font-size:12px;font-weight:600;color:var(--muted);line-height:1.35;}
+.wallet .st b{color:var(--ink);}
+.btn{font-family:"Jersey 15",sans-serif;border:none;border-radius:var(--r-sm);background:var(--plum);
+  color:#fff;font-size:17px;padding:9px 16px;letter-spacing:.5px;}
+.btn:active{background:var(--plum-deep);}
+.btn:disabled{opacity:.45;}
+.btn.amber{background:var(--amber);color:#3a2410;}
+
+/* play surface */
+.surface{flex:1 1 auto;min-height:0;margin-top:var(--s1);position:relative;
+  border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh2);border:1px solid #e8d8c6;}
+canvas{display:block;width:100%;height:100%;touch-action:none;}
+.safety{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:10.5px;
+  color:rgba(255,255,255,.72);font-weight:600;pointer-events:none;text-shadow:0 1px 3px rgba(0,0,0,.5);}
+
+/* control pad — Snake steers, so the action bar is a D-pad (kid-friendly),
+   backed by keyboard (arrows/WASD) and swipe on the surface. */
+.pad{flex:0 0 auto;padding:var(--s2) 0 var(--s1);display:grid;gap:var(--s1);
+  grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;
+  max-width:186px;width:100%;margin:0 auto;}
+.dbtn{font-family:"Jersey 15",sans-serif;border:none;border-radius:var(--r-sm);background:var(--plum);
+  color:#fff;font-size:19px;line-height:1;padding:7px 0;box-shadow:var(--sh1);}
+.dbtn:active{background:var(--plum-deep);}
+.dbtn.up{grid-column:2;grid-row:1;}
+.dbtn.left{grid-column:1;grid-row:2;}
+.dbtn.down{grid-column:2;grid-row:2;}
+.dbtn.right{grid-column:3;grid-row:2;}
+
+/* footer marketing — standing FDL v5 requirement: exactly two outbound links */
+.foot{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:var(--s2);
+  padding:0 0 max(var(--s3),env(safe-area-inset-bottom));font-size:11px;color:var(--muted);}
+.foot a{color:var(--plum);font-weight:700;text-decoration:none;}
+.foot span{opacity:.5;}
+
+/* modal overlay — never a push */
+#modal:not(:empty){position:fixed;inset:0;background:rgba(42,34,48,.55);backdrop-filter:blur(3px);
+  z-index:50;display:flex;align-items:center;justify-content:center;padding:var(--s6);}
+.card{background:var(--cream);border-radius:var(--r-xl);max-width:400px;width:100%;padding:var(--s6);
+  box-shadow:var(--sh3);}
+.card.win{border:2px solid var(--amber);}
+.card h3{font-family:"Jersey 15",sans-serif;font-size:26px;color:var(--plum);margin-bottom:var(--s3);}
+.card p{font-size:13.5px;line-height:1.6;color:var(--ink);margin-bottom:var(--s3);}
+.card .big{font-family:"Jersey 15",sans-serif;font-size:46px;color:var(--ink);text-align:center;line-height:1;}
+.card .prize{color:var(--amber);text-align:center;font-weight:800;font-size:16px;margin-bottom:var(--s4);}
+.card ul{list-style:none;font-size:12.5px;color:var(--muted);margin-bottom:var(--s4);}
+.card li{padding:3px 0 3px 18px;position:relative;}
+.card li::before{content:"·";position:absolute;left:6px;color:var(--plum);font-weight:800;}
+.card .btn{width:100%;font-size:19px;padding:13px;margin-bottom:var(--s2);}
+.card .ghost{background:transparent;color:var(--plum);border:1.5px solid var(--plum);}
+.pending{background:#fff6ea;border:1px solid #f6dcae;border-radius:var(--r-md);padding:var(--s3);
+  font-size:12px;color:#7a5a20;margin-bottom:var(--s4);text-align:center;font-weight:600;}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+<div id="testbar">🧪 TEST MODE — points at your local validator (127.0.0.1), not mainnet.</div>
+<div class="wrap">
+  <div class="topbar">
+    <span class="eyebrow">Bot Games</span>
+    <span class="title">Pipeline</span>
+    <button class="info" id="infoBtn" aria-label="How it works">ⓘ</button>
+  </div>
+
+  <div class="facts">
+    <div><b>Free</b>to play</div>
+    <div class="amber"><b id="fThr">10 pipes</b>earns 5 OIL</div>
+    <div><b>Weekly</b>batch payout</div>
+  </div>
+
+  <div class="wallet">
+    <div class="st" id="wStatus">Play free right now. Connect only when you want to <b>bank</b> what you earn.</div>
+    <button class="btn" id="connectBtn">Connect</button>
+  </div>
+
+  <div class="surface">
+    <canvas id="c"></canvas>
+    <div class="safety">We never ask for your seed phrase, or to move your Bots or tokens.</div>
+  </div>
+
+  <div class="pad">
+    <button class="dbtn up"    id="dUp"    aria-label="Up">▲</button>
+    <button class="dbtn left"  id="dLeft"  aria-label="Left">◀</button>
+    <button class="dbtn down"  id="dDown"  aria-label="Down">▼</button>
+    <button class="dbtn right" id="dRight" aria-label="Right">▶</button>
+  </div>
+
+  <div class="foot">
+    <a href="https://magiceden.io/marketplace/finnbot" target="_blank" rel="noopener">Buy a Bot</a>
+    <span>·</span>
+    <a href="https://finnstergram.com/games" target="_blank" rel="noopener">More games</a>
+  </div>
+</div>
+<div id="modal"></div>
+
+<!-- Wallet support files — MUST sit alongside index.html in the deploy folder.
+     Copied byte-for-byte from the Flappy / Pick-a-Bot deploy (all three shared, identical). -->
+<script src="solana-web3.iife.min.js?v=20260828a"></script>
+<script src="phantom-deeplink-libs.min.js?v=20260828a"></script>
+<script src="phantom-mobile.js?v=20260828a"></script>
+
+<script>
+"use strict";
+var BUILD_TAG = 'pipeline-v1-20260904a';
+console.log('[pipeline] build', BUILD_TAG);
+/* ============================================================
+   1. CONFIG  — TEST_MODE is the master switch (four-value pattern).
+   NEVER commit/deploy as false without explicit Founder confirmation
+   in that run's own output. Byte-count (wc -c) every deploy.
+   ============================================================ */
+const TEST_MODE = false;   // <-- master switch. Stays true until Founder confirms go-live.
+                          // Controls RPC + network together (four-value pattern). true = local validator.
+
+const CFG = TEST_MODE ? {
+  NETWORK: 'local-test-validator',
+  RPC: 'http://127.0.0.1:8899',                                   // local solana-test-validator
+  MEMO_PROGRAM: 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr',
+  FAUCET_ADDRESS: 'FfUf31sPDqjV3f7HBLCJ8ra9GZXVQe6jW4kchxnEGrHa', // SHARED faucet — same wallet as Flappy, so the daily ceiling is ONE counter
+  CLAIM_SOL: 0.005, CLAIM_LAMPORTS: 5000000,                       // MUST equal scanner EARN_CLAIM_LAMPORTS
+  REWARD_OIL: 5, DAILY_CAP_OIL: 25, MEMO_NS: 'PIPE', MEMO_METRIC: 'len',
+  BOT_IMG_URL: 'https://arweave.net/_cPSCheRvzVBlZK7QwM-3nXtteMdBbUn-zJhbGRlMmo/106.png',
+  OIL_IMG_URL: 'https://arweave.net/XGTR8A5zDaD_S3obMixSknOjtMEbVRu1dqSopBwS1H0'   // $OIL logo — pink oil can (287.png)
+} : {
+  NETWORK: 'mainnet',
+  RPC: 'https://finnbots-rpc.mart-kin1000.workers.dev',            // Cloudflare Worker proxy — never Helius direct
+  MEMO_PROGRAM: 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr',
+  FAUCET_ADDRESS: 'FfUf31sPDqjV3f7HBLCJ8ra9GZXVQe6jW4kchxnEGrHa', // SHARED faucet wallet — Flappy + Pipeline claims land here (shared cap/ceiling)
+  CLAIM_SOL: 0.005, CLAIM_LAMPORTS: 5000000,                       // MUST equal scanner EARN_CLAIM_LAMPORTS
+  REWARD_OIL: 5, DAILY_CAP_OIL: 25, MEMO_NS: 'PIPE', MEMO_METRIC: 'len',
+  BOT_IMG_URL: 'https://arweave.net/_cPSCheRvzVBlZK7QwM-3nXtteMdBbUn-zJhbGRlMmo/106.png',  // Bot #106 — same {ARWEAVE_BASE}/{n}.png scheme; proven CORS-independent sprite
+  OIL_IMG_URL: 'https://arweave.net/XGTR8A5zDaD_S3obMixSknOjtMEbVRu1dqSopBwS1H0'   // $OIL logo — pink oil can (287.png), the token icon on Solscan/wallets
+};
+
+/* LOCKED FEEL — grid + pace. threshold = pipes to connect to earn. */
+const PARAMS = {
+  cols:15, rows:25,
+  tickStart:140, tickFloor:80, tickStep:3,   // ms per move; speeds up as you grow
+  startLen:3, threshold:10
+};
+document.getElementById('fThr').textContent = PARAMS.threshold + ' pipes';
+
+/* ============================================================
+   2. WALLET LAYER  — the ONLY on-chain surface. Lifted verbatim from
+   the proven Flappy build: desktop injected provider signs inline;
+   mobile uses phantom-mobile.js deeplink (browse front-door → sign
+   round-trip → resume on reload). Phantom SIGNS only — WE submit,
+   through CFG.RPC (Worker proxy in live mode, local validator in test).
+   The claim is a SOL transfer (earners hold no OIL) + a PIPE memo.
+   ============================================================ */
+const delay = ms => new Promise(r=>setTimeout(r,ms));
+let wallet = { pubkey:null };
+function hasWallet(){ return !!wallet.pubkey; }
+function shortAddr(a){ return a.slice(0,4)+'…'+a.slice(-4); }
+
+function getProvider(){
+  if(window.phantom && window.phantom.solana && window.phantom.solana.isPhantom) return window.phantom.solana;
+  if(window.solana && window.solana.isPhantom) return window.solana;
+  return null;
+}
+function setWalletStatus(html, warn){
+  const s=document.getElementById('wStatus');
+  s.innerHTML = warn ? '<b style="color:#c0392b">'+html+'</b>' : html;
+}
+function onConnected(){
+  setWalletStatus('Connected: <b>'+shortAddr(wallet.pubkey)+'</b>. Bank your OIL when a run qualifies.');
+  const b=document.getElementById('connectBtn'); b.textContent='✓ Connected'; b.disabled=true;
+}
+
+async function doConnect(){
+  const provider=getProvider();
+  if(!provider){
+    if(window.PhantomMobile && PhantomMobile.isMobile()){
+      const inBrowse=new URLSearchParams(location.search).get('src')==='browse';
+      if(!inBrowse){
+        // Front door: open this page INSIDE Phantom's own browser, where the
+        // provider IS injected — connect + sign become in-place popups.
+        setWalletStatus('Opening this game inside Phantom\u2019s browser…');
+        const target=location.origin+location.pathname+'?src=browse';
+        location.href='https://phantom.app/ul/browse/'+encodeURIComponent(target)+'?ref='+encodeURIComponent(location.origin);
+        return;
+      }
+      // Inside Phantom but still no provider — fall back to the encrypted redirect.
+      setWalletStatus('Opening Phantom — approve, then you\u2019ll come straight back here.');
+      PhantomMobile.connect(location.origin+location.pathname);
+      return;
+    }
+    setWalletStatus('Phantom isn\u2019t reachable here. If this is the chat preview, that\u2019s expected — it\u2019s a sealed window. Open pipe.finnstergram.com in your own browser with Phantom.', true);
+    return;
+  }
+  const b=document.getElementById('connectBtn'); b.disabled=true; b.textContent='Connecting…';
+  try{
+    const resp=await provider.connect();
+    wallet.pubkey=resp.publicKey.toString();
+    onConnected();
+  }catch(e){
+    b.disabled=false; b.textContent='Connect';
+    setWalletStatus('Connection cancelled. Tap Connect to try again.', true);
+  }
+}
+
+// ---- transaction builders ----
+function buildMemoIx(ownerPk, text){
+  return new solanaWeb3.TransactionInstruction({
+    programId: new solanaWeb3.PublicKey(CFG.MEMO_PROGRAM),
+    keys: [{ pubkey: ownerPk, isSigner:true, isWritable:false }],
+    data: new TextEncoder().encode(text)
+  });
+}
+async function buildClaimTx(ownerPk, len, connection){
+  const tx=new solanaWeb3.Transaction();
+  tx.add(
+    solanaWeb3.SystemProgram.transfer({
+      fromPubkey: ownerPk,
+      toPubkey: new solanaWeb3.PublicKey(CFG.FAUCET_ADDRESS),
+      lamports: CFG.CLAIM_LAMPORTS
+    }),
+    buildMemoIx(ownerPk, CFG.MEMO_NS+'|earn|'+CFG.MEMO_METRIC+'='+len)
+  );
+  tx.feePayer=ownerPk;
+  const latest=await connection.getLatestBlockhash();
+  tx.recentBlockhash=latest.blockhash;
+  return tx;
+}
+async function confirmSignature(connection, signature, timeoutMs){
+  const start=Date.now();
+  while(Date.now()-start < timeoutMs){
+    const res=await connection.getSignatureStatuses([signature]);
+    const st=res && res.value && res.value[0];
+    if(st){
+      if(st.err) throw new Error('The claim failed on-chain — nothing was banked. Please try again.');
+      if(st.confirmationStatus==='confirmed' || st.confirmationStatus==='finalized') return true;
+    }
+    await delay(1500);
+  }
+  return false;
+}
+
+// ---- mobile deeplink resume — runs once on every page load ----
+async function resumePhantomState(){
+  const action=new URLSearchParams(location.search).get('phantom_action');
+  const rawParams=location.search;
+  if(!action){
+    if(!wallet.pubkey && window.PhantomMobile && PhantomMobile.hasSession()){
+      wallet.pubkey=PhantomMobile.getSessionPublicKey(); onConnected();
+    }
+    return;
+  }
+  const result=window.PhantomMobile ? PhantomMobile.consumePendingRedirect('pipe_claim') : null;
+  if(result && result.type==='connect'){ wallet.pubkey=result.publicKey; onConnected(); return; }
+  if(result && result.type==='signTransaction'){
+    const rp=new URLSearchParams(rawParams);
+    const lenFromUrl=parseInt(rp.get('len'),10);
+    const ownerFromUrl=rp.get('owner');
+    if(!wallet.pubkey) wallet.pubkey=(PhantomMobile.hasSession()&&PhantomMobile.getSessionPublicKey())||ownerFromUrl||null;
+    try{ const u=new URL(location.href); u.searchParams.delete('len'); u.searchParams.delete('owner');
+      history.replaceState({},document.title,u.pathname+(u.search||'')+u.hash); }catch(e){}
+    resumeClaimAfterSign(result.txBytes, lenFromUrl);
+    return;
+  }
+  if(result && result.type==='error'){ setWalletStatus(result.message, true); }
+}
+
+/* ============================================================
+   3. GAME ENGINE  — Snake ("Pipeline"): steer the Bot to connect
+   oil-drum pipe segments; grow longer; don't hit a wall or yourself.
+   Grid-stepped, virtual world W×H letterboxed onto the surface.
+   ============================================================ */
+const W=360,H=640;
+const COLS=PARAMS.cols, ROWS=PARAMS.rows;
+const CELL=Math.floor(Math.min(W/COLS, H/ROWS));
+const BOARD_W=COLS*CELL, BOARD_H=ROWS*CELL;
+const BX0=Math.floor((W-BOARD_W)/2), BY0=Math.floor((H-BOARD_H)/2);
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+let scale=1,dpr=1,offX=0,offY=0;
+function resize(){
+  const r=cv.parentElement.getBoundingClientRect();
+  dpr=Math.min(window.devicePixelRatio||1,3);
+  scale=Math.min(r.width/W,r.height/H);
+  cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr);
+  offX=(r.width-W*scale)/2; offY=(r.height-H*scale)/2;
+}
+window.addEventListener('resize',()=>{resize();});
+
+/* real Bot sprite (FDL: real Bots always; fail to a clean swatch, never broken) */
+const botImg=new Image(); let botReady=false;
+// No crossOrigin: we only drawImage (never read pixels back), so a tainted
+// canvas is harmless and the sprite loads from any host, CORS or not.
+if(CFG.BOT_IMG_URL){ botImg.onload=()=>botReady=true; botImg.onerror=()=>{botReady=false;}; botImg.src=CFG.BOT_IMG_URL; }
+/* $OIL token icon (pink oil can) for the pickups — draw-only, CORS-independent */
+const oilImg=new Image(); let oilReady=false;
+if(CFG.OIL_IMG_URL){ oilImg.onload=()=>oilReady=true; oilImg.onerror=()=>{oilReady=false;}; oilImg.src=CFG.OIL_IMG_URL; }
+
+/* audio (synthesised) */
+let AC=null;
+function audio(){ if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}} if(AC&&AC.state==='suspended')AC.resume(); return AC; }
+function blip(type){
+  const a=audio(); if(!a)return; const t=a.currentTime;
+  if(type==='turn'){const o=a.createOscillator(),g=a.createGain();o.type='square';
+    o.frequency.setValueAtTime(520,t);g.gain.setValueAtTime(.06,t);g.gain.exponentialRampToValueAtTime(.001,t+.07);o.connect(g).connect(a.destination);o.start(t);o.stop(t+.08);}
+  else if(type==='score'){[660,990].forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();const s=t+i*.06;
+    o.type='triangle';o.frequency.setValueAtTime(f,s);g.gain.setValueAtTime(.1,s);g.gain.exponentialRampToValueAtTime(.001,s+.14);o.connect(g).connect(a.destination);o.start(s);o.stop(s+.15);});}
+  else if(type==='crash'){const o=a.createOscillator(),g=a.createGain();o.type='sawtooth';
+    o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(70,t+.3);
+    g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.001,t+.34);o.connect(g).connect(a.destination);o.start(t);o.stop(t+.35);}
+  else if(type==='earn'){[523,659,784,1047].forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();const s=t+i*.08;
+    o.type='triangle';o.frequency.setValueAtTime(f,s);g.gain.setValueAtTime(.11,s);g.gain.exponentialRampToValueAtTime(.001,s+.2);o.connect(g).connect(a.destination);o.start(s);o.stop(s+.22);});}
+}
+
+let state='ready';      // ready | playing | dead
+let snake,dir,nextDir,food,score,best=0,shake,flash,deadAt,particles;
+
+function reset(){
+  const cy=Math.floor(ROWS/2);
+  snake=[]; for(let i=0;i<PARAMS.startLen;i++) snake.push({x:5-i,y:cy});
+  dir={x:1,y:0}; nextDir={x:1,y:0}; score=0; shake=0; flash=0; particles=[];
+  spawnFood(); state='ready'; syncAction();
+}
+function cellFree(x,y){ for(const s of snake){ if(s.x===x&&s.y===y) return false; } return true; }
+function spawnFood(){
+  let x,y,guard=0;
+  do{ x=Math.floor(Math.random()*COLS); y=Math.floor(Math.random()*ROWS); guard++; }
+  while(!cellFree(x,y) && guard<500);
+  food={x,y};
+}
+function tickMs(){ return Math.max(PARAMS.tickFloor, PARAMS.tickStart - score*PARAMS.tickStep); }
+
+function setDir(nx,ny){
+  if(state==='dead') return;
+  if(state==='ready'){ state='playing'; dir={x:nx,y:ny}; nextDir={x:nx,y:ny}; blip('turn'); syncAction(); return; }
+  // block a 180° reversal into the neck
+  if(nx===-dir.x && ny===-dir.y) return;
+  nextDir={x:nx,y:ny}; blip('turn');
+}
+function tick(){
+  dir=nextDir;
+  const head={x:snake[0].x+dir.x, y:snake[0].y+dir.y};
+  if(head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS) return die();
+  for(const s of snake){ if(s.x===head.x&&s.y===head.y) return die(); }
+  snake.unshift(head);
+  if(food && head.x===food.x && head.y===food.y){ score++; onScore(head); spawnFood(); }
+  else snake.pop();
+}
+function onScore(head){ blip('score'); shake=Math.min(shake+2,4);
+  const p=cellPx(head); for(let i=0;i<8;i++)particles.push(part(p.x,p.y,'#f2a03d',1.2,60)); syncAction(); }
+function die(){ if(state==='dead')return; state='dead'; deadAt=performance.now(); blip('crash'); shake=14; flash=1;
+  const p=cellPx(snake[0]); for(let i=0;i<26;i++)particles.push(part(p.x,p.y,'#e07a5f',2.4,150));
+  if(score>best)best=score; syncAction(); showGameOver(); }
+function part(x,y,c,sp,life){const a=Math.random()*Math.PI*2,s=(Math.random()*.6+.4)*sp*90;
+  return{x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-40,life:life/1000,max:life/1000,color:c,size:Math.random()*3+2};}
+function updP(dt){for(const pt of particles){pt.vy+=520*dt;pt.x+=pt.vx*dt;pt.y+=pt.vy*dt;pt.life-=dt;}particles=particles.filter(p=>p.life>0);}
+
+function cellPx(c){ return {x:BX0+c.x*CELL+CELL/2, y:BY0+c.y*CELL+CELL/2}; }
+
+/* render */
+function render(){
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.save(); ctx.translate(offX,offY); ctx.scale(scale,scale);
+  ctx.beginPath();ctx.rect(0,0,W,H);ctx.clip();
+  let sx=0,sy=0; if(shake>0){sx=(Math.random()*2-1)*shake;sy=(Math.random()*2-1)*shake;shake*=.86;if(shake<.3)shake=0;} ctx.translate(sx,sy);
+  // dusk backdrop
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#6d5763');g.addColorStop(.6,'#8a6f76');g.addColorStop(1,'#c99a86');
+  ctx.fillStyle=g;ctx.fillRect(-20,-20,W+40,H+40);
+  // board panel
+  ctx.fillStyle='rgba(42,34,48,.28)';ctx.fillRect(BX0,BY0,BOARD_W,BOARD_H);
+  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=2;ctx.strokeRect(BX0,BY0,BOARD_W,BOARD_H);
+  // grid lines (subtle)
+  ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=1;
+  for(let i=1;i<COLS;i++){ctx.beginPath();ctx.moveTo(BX0+i*CELL,BY0);ctx.lineTo(BX0+i*CELL,BY0+BOARD_H);ctx.stroke();}
+  for(let j=1;j<ROWS;j++){ctx.beginPath();ctx.moveTo(BX0,BY0+j*CELL);ctx.lineTo(BX0+BOARD_W,BY0+j*CELL);ctx.stroke();}
+  // food = the $OIL token icon (pink oil can); clean amber fallback, never a broken image
+  if(food){const fp=cellPx(food),d=CELL*0.84,r=CELL*0.34;
+    if(oilReady){ctx.imageSmoothingEnabled=false;
+      ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(fp.x-d/2+1.5,fp.y-d/2+2,d,d);
+      ctx.drawImage(oilImg,fp.x-d/2,fp.y-d/2,d,d);
+      ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=1;ctx.strokeRect(fp.x-d/2,fp.y-d/2,d,d);
+    } else {
+      ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.arc(fp.x+1.5,fp.y+2,r,0,7);ctx.fill();
+      ctx.fillStyle='#f2a03d';ctx.beginPath();ctx.arc(fp.x,fp.y,r,0,7);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.arc(fp.x-r*.35,fp.y-r*.35,r*.28,0,7);ctx.fill();}}
+  // pipe body (plum, connected)
+  for(let i=snake.length-1;i>=1;i--){const c=cellPx(snake[i]);
+    ctx.fillStyle=i%2?'#5f4c57':'#54424c';
+    roundRect(c.x-CELL*0.42,c.y-CELL*0.42,CELL*0.84,CELL*0.84,4);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.06)';roundRect(c.x-CELL*0.42,c.y-CELL*0.42,CELL*0.84,3,2);ctx.fill();}
+  // head = a Bot
+  if(snake&&snake.length){const hc=cellPx(snake[0]);
+    ctx.save();ctx.translate(hc.x,hc.y);
+    const ang=Math.atan2(dir.y,dir.x);ctx.rotate(ang);
+    const s=CELL*0.94;
+    if(botReady){ctx.imageSmoothingEnabled=false;
+      ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(-s/2+2,-s/2+2,s,s);
+      ctx.drawImage(botImg,-s/2,-s/2,s,s);
+      ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=1.5;ctx.strokeRect(-s/2,-s/2,s,s);
+    } else {const r=s/2;
+      ctx.fillStyle='#f5f0a0';ctx.fillRect(-r,-r,s,s);
+      ctx.fillStyle='#3e323a';ctx.fillRect(-4,-r-3,8,4);ctx.fillRect(2,-5,5,5);
+      ctx.fillStyle='#f2a03d';ctx.fillRect(3,-4,3,3);
+      ctx.strokeStyle='rgba(62,50,58,.4)';ctx.lineWidth=1.5;ctx.strokeRect(-r,-r,s,s);}
+    ctx.restore();}
+  // particles
+  for(const pt of particles){ctx.globalAlpha=Math.max(pt.life/pt.max,0);ctx.fillStyle=pt.color;ctx.fillRect(pt.x-pt.size/2,pt.y-pt.size/2,pt.size,pt.size);}ctx.globalAlpha=1;
+  // HUD score + progress to earn threshold
+  if(state!=='ready'){ctx.fillStyle='#fff';ctx.font='34px "Jersey 15",sans-serif';ctx.textAlign='center';
+    ctx.shadowColor='rgba(0,0,0,.4)';ctx.shadowBlur=8;ctx.fillText(score,W/2,BY0-6);ctx.shadowBlur=0;
+    const need=PARAMS.threshold;ctx.font='12px "Plus Jakarta Sans",sans-serif';
+    ctx.fillStyle=score>=need?'#ffe9c2':'rgba(255,255,255,.75)';
+    ctx.fillText(score>=need?'✓ '+CFG.REWARD_OIL+' OIL earned — keep going':(need-score)+' more pipes to earn '+CFG.REWARD_OIL+' OIL',W/2,H-8);}
+  if(state==='ready'){ctx.fillStyle='rgba(255,255,255,.95)';ctx.textAlign='center';
+    ctx.font='22px "Jersey 15",sans-serif';ctx.fillText('SWIPE OR TAP ▲ TO START',W/2,H*.5-6);
+    ctx.font='13px "Plus Jakarta Sans",sans-serif';ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillText('free — no wallet needed',W/2,H*.5+20);}
+  if(flash>0){ctx.fillStyle='rgba(255,255,255,'+(flash*.5)+')';ctx.fillRect(-20,-20,W+40,H+40);flash*=.82;if(flash<.03)flash=0;}
+  ctx.restore();
+}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+let acc=0,last=performance.now();
+function frame(now){let dt=now-last;last=now;if(dt>250)dt=250;
+  if(state==='playing'){acc+=dt;let g=0;const ms=tickMs();while(acc>=ms&&g++<8){tick();acc-=ms;}}else acc=0;
+  updP(dt/1000);render();requestAnimationFrame(frame);}
+
+/* ============================================================
+   4. EARN FLOW  — free play → qualify → bank (one signed claim).
+   ============================================================ */
+function syncAction(){ /* D-pad is always live; nothing to toggle */ }
+
+function showGameOver(){
+  const qualified=score>=PARAMS.threshold;
+  const m=document.getElementById('modal');
+  m.innerHTML=`<div class="card ${qualified?'win':''}" role="dialog" aria-modal="true">
+    <div class="big">${score}</div>
+    <div class="prize">${qualified?`✓ you earned ${CFG.REWARD_OIL} OIL`:`${PARAMS.threshold-score} more pipes to earn ${CFG.REWARD_OIL} OIL`}</div>
+    ${qualified?`
+      <div class="pending">Reward arrives with the next weekly $OIL batch — not instant.</div>
+      <ul>
+        <li>Banking signs one transaction: ${CFG.CLAIM_SOL} SOL + a memo, to the game's faucet wallet.</li>
+        <li>That tiny SOL keeps free accounts from farming it. You'll need a little SOL in your wallet.</li>
+        <li>Up to ${CFG.DAILY_CAP_OIL} OIL a day across all earn games. Spend it in Pick-a-Bot or Spot-a-FinnBot.</li>
+      </ul>
+      <button class="btn amber" id="bankBtn">Bank ${CFG.REWARD_OIL} OIL</button>`:''}
+    <button class="btn ghost" id="againBtn">Play again</button>
+  </div>`;
+  m.querySelector('#againBtn').onclick=closeModalAndReset;
+  if(qualified) m.querySelector('#bankBtn').onclick=bank;
+}
+async function bank(){
+  const btn=document.getElementById('bankBtn'); if(!btn)return;
+  const len=score;
+  try{
+    if(typeof solanaWeb3==='undefined') throw new Error('Wallet library didn\u2019t load — open pipe.finnstergram.com in your own browser (not the chat preview).');
+    // Need a connected wallet to sign. Desktop can connect inline; mobile
+    // connect redirects (and would wipe this run), so ask them to Connect first.
+    if(!hasWallet()){
+      const provider=getProvider();
+      if(provider){ try{ const r=await provider.connect(); wallet.pubkey=r.publicKey.toString(); onConnected(); }
+        catch(e){ return setBankError(btn,'Connection cancelled.'); } }
+      else { return setBankError(btn,'Tap Connect at the top first, then bank this run.'); }
+    }
+    btn.disabled=true; btn.textContent='Building…';
+    const ownerPk=new solanaWeb3.PublicKey(wallet.pubkey);
+    const connection=new solanaWeb3.Connection(CFG.RPC,'confirmed');
+    const bal=await connection.getBalance(ownerPk);
+    if(bal < CFG.CLAIM_LAMPORTS + 5000)
+      throw new Error('You need a little SOL in this wallet to bank ('+CFG.CLAIM_SOL+' SOL + a small fee).');
+    const tx=await buildClaimTx(ownerPk, len, connection);
+
+    const provider=getProvider();
+    const useMobile=!provider && window.PhantomMobile && PhantomMobile.isMobile() && PhantomMobile.hasSession();
+    if(!provider && !useMobile) throw new Error('Phantom isn\u2019t reachable — tap Connect again.');
+
+    if(useMobile){
+      // Page navigates away to Phantom. Phantom returns in a NEW tab, so
+      // everything needed to finish travels in the return URL (len, owner).
+      btn.textContent='Opening Phantom…';
+      const unsigned=tx.serialize({ requireAllSignatures:false, verifySignatures:false });
+      const returnUrl=location.origin+location.pathname+'?len='+len+'&owner='+encodeURIComponent(wallet.pubkey);
+      PhantomMobile.signTransaction(unsigned, returnUrl, 'pipe_claim');
+      return; // navigating away
+    }
+
+    // Desktop: Phantom signs, WE submit through CFG.RPC.
+    btn.textContent='Approve in Phantom…';
+    const signed=await provider.signTransaction(tx);
+    btn.textContent='Sending…';
+    const rawSig=await connection.sendRawTransaction(signed.serialize(), { skipPreflight:false });
+    const ok=await confirmSignature(connection, rawSig, 30000);
+    if(!ok) throw new Error('Claim sent but confirmation is slow. Signature: '+rawSig+' — do NOT bank again, check it first.');
+    showBanked(rawSig);
+  }catch(e){
+    setBankError(btn, e.message || 'Something went wrong. Nothing was banked unless a claim confirmed.');
+  }
+}
+
+// Completes a claim after returning from Phantom's mobile app with signed bytes.
+async function resumeClaimAfterSign(txBytes, len){
+  const m=document.getElementById('modal');
+  m.innerHTML='<div class="card win" role="dialog" aria-modal="true"><h3>Banking…</h3><p>Sending your claim to the chain…</p></div>';
+  try{
+    if(typeof solanaWeb3==='undefined') throw new Error('Wallet library didn\u2019t load.');
+    const connection=new solanaWeb3.Connection(CFG.RPC,'confirmed');
+    const rawSig=await connection.sendRawTransaction(txBytes, { skipPreflight:false });
+    const ok=await confirmSignature(connection, rawSig, 30000);
+    if(!ok) throw new Error('Claim sent but confirmation is slow. Signature: '+rawSig+' — do NOT bank again, check it first.');
+    showBanked(rawSig);
+  }catch(e){
+    m.innerHTML='<div class="card" role="dialog" aria-modal="true"><h3>Hmm</h3>'+
+      '<p style="color:#c0392b;font-weight:600;">'+(e.message||'Could not finish the claim.')+'</p>'+
+      '<button class="btn ghost" id="pa">Play again</button></div>';
+    m.querySelector('#pa').onclick=closeModalAndReset;
+  }
+}
+
+function showBanked(sig){
+  blip('earn');
+  const m=document.getElementById('modal');
+  m.innerHTML=`<div class="card win" role="dialog" aria-modal="true">
+    <h3>Banked ✓</h3>
+    <div class="prize">${CFG.REWARD_OIL} OIL queued</div>
+    <div class="pending">Arrives with the next weekly $OIL batch — not instant.${TEST_MODE?' (TEST MODE — local validator.)':''}</div>
+    <p style="font-size:11px;color:var(--muted);word-break:break-all;">claim: ${sig}</p>
+    <button class="btn" id="c1">New Bot? Grab one on Magic Eden</button>
+    <button class="btn ghost" id="c2">Play again</button>
+  </div>`;
+  m.querySelector('#c1').onclick=()=>window.open('https://magiceden.io/marketplace/finnbot','_blank');
+  m.querySelector('#c2').onclick=closeModalAndReset;
+}
+function setBankError(btn, msg){
+  btn.disabled=false; btn.textContent='Bank '+CFG.REWARD_OIL+' OIL';
+  const card=btn.closest('.card'); if(!card) return;
+  let e=card.querySelector('.bankerr');
+  if(!e){ e=document.createElement('p'); e.className='bankerr';
+    e.style.cssText='color:#c0392b;font-size:12px;font-weight:600;margin-bottom:8px;'; card.insertBefore(e,btn); }
+  e.textContent=msg;
+}
+function closeModalAndReset(){document.getElementById('modal').innerHTML='';reset();}
+
+document.getElementById('connectBtn').onclick=doConnect;
+document.getElementById('infoBtn').onclick=()=>{
+  const m=document.getElementById('modal');
+  m.innerHTML=`<div class="card" role="dialog" aria-modal="true">
+    <h3>How Pipeline works</h3>
+    <p><b>Play free.</b> No wallet, no Bot, no $OIL needed. Steer the Bot to connect oil-drum pipe segments — don't hit a wall or your own pipe.</p>
+    <p><b>Earn by connecting ${PARAMS.threshold} pipes.</b> Do that and you can bank <b>${CFG.REWARD_OIL} OIL</b> — a small amount of in-game currency, not income.</p>
+    <p><b>Banking signs one transaction:</b> ${CFG.CLAIM_SOL} SOL + a memo, sent to the game's faucet wallet. We never ask for your seed phrase or to move your Bots or tokens.</p>
+    <p><b>Paid weekly.</b> Earned OIL arrives with the next batch, then spend it in Pick-a-Bot or Spot-a-FinnBot. Up to ${CFG.DAILY_CAP_OIL} OIL a day across all earn games.</p>
+    <button class="btn" id="ic">Got it</button>
+  </div>`;
+  m.querySelector('#ic').onclick=()=>m.innerHTML='';
+};
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')e.target.innerHTML='';});
+
+/* input — D-pad, keyboard, swipe */
+document.getElementById('dUp').onclick   =()=>setDir(0,-1);
+document.getElementById('dDown').onclick =()=>setDir(0,1);
+document.getElementById('dLeft').onclick =()=>setDir(-1,0);
+document.getElementById('dRight').onclick=()=>setDir(1,0);
+window.addEventListener('keydown',e=>{
+  const k=e.key;
+  if(k==='ArrowUp'||k==='w'||k==='W'){e.preventDefault();setDir(0,-1);}
+  else if(k==='ArrowDown'||k==='s'||k==='S'){e.preventDefault();setDir(0,1);}
+  else if(k==='ArrowLeft'||k==='a'||k==='A'){e.preventDefault();setDir(-1,0);}
+  else if(k==='ArrowRight'||k==='d'||k==='D'){e.preventDefault();setDir(1,0);}
+});
+const stage=document.querySelector('.surface');
+let tsx=0,tsy=0;
+stage.addEventListener('touchstart',e=>{const t=e.changedTouches[0];tsx=t.clientX;tsy=t.clientY;},{passive:true});
+stage.addEventListener('touchend',e=>{const t=e.changedTouches[0];const dx=t.clientX-tsx,dy=t.clientY-tsy;
+  if(Math.abs(dx)<12&&Math.abs(dy)<12){ if(state==='ready') setDir(dir.x,dir.y); return; }
+  if(Math.abs(dx)>Math.abs(dy)) setDir(dx>0?1:-1,0); else setDir(0,dy>0?1:-1);},{passive:true});
+
+/* go */
+if(TEST_MODE===false) document.getElementById('testbar').classList.add('hide');
+if(window.PhantomMobile) resumePhantomState();   // catch Phantom redirect returns / restore session
+requestAnimationFrame(()=>{resize();reset();requestAnimationFrame(frame);});
+</script>
+</body>
+</html>
