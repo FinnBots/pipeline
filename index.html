@@ -486,10 +486,13 @@ function reset(){
 }
 function cellFree(x,y){ for(const s of snake){ if(s.x===x&&s.y===y) return false; } return true; }
 function spawnFood(){
-  let x,y,guard=0;
-  do{ x=Math.floor(Math.random()*COLS); y=Math.floor(Math.random()*ROWS); guard++; }
-  while(!cellFree(x,y) && guard<500);
-  food={x,y};
+  /* Pick from the cells that are actually free. Rejection sampling used to give
+     up after 500 tries and drop the pipe INSIDE the snake, where the only way to
+     reach it is to die — rare, but it only ever happened to your best run. */
+  const free=[];
+  for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++) if(cellFree(x,y)) free.push({x,y});
+  if(!free.length){ food=null; return; }            // board full = you have won
+  food=free[Math.floor(Math.random()*free.length)];
 }
 function tickMs(){ return Math.max(PARAMS.tickFloor, PARAMS.tickStart - score*PARAMS.tickStep); }
 
