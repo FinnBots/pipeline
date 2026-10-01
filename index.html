@@ -88,6 +88,13 @@ canvas{display:block;width:100%;height:100%;touch-action:none;}
 .foot span{opacity:.5;}
 
 /* modal overlay — never a push */
+/* The run-over card lives in its OWN overlay, not in #modal. #modal is visible
+   via `:not(:empty)` and is wiped with innerHTML, so a card inside it would
+   either never disappear or be destroyed — and the shared stickiness layer
+   binds at page LOAD, so a card that does not exist yet is one it gives up on. */
+#overOverlay{display:none}
+#overOverlay.show{position:fixed;inset:0;background:rgba(42,34,48,.55);backdrop-filter:blur(3px);
+  z-index:50;display:flex;align-items:center;justify-content:center;padding:var(--s6);}
 #modal:not(:empty){position:fixed;inset:0;background:rgba(42,34,48,.55);backdrop-filter:blur(3px);
   z-index:50;display:flex;align-items:center;justify-content:center;padding:var(--s6);}
 .card{background:var(--cream);border-radius:var(--r-xl);max-width:400px;width:100%;padding:var(--s6);
@@ -261,6 +268,16 @@ canvas{ touch-action:none; }
   </div>
 </div>
 <div id="modal"></div>
+    <div id="overOverlay">
+      <div class="card" id="overCard" role="dialog" aria-modal="true">
+        <div class="big" id="oScore">0</div>
+        <div class="prize" id="ovPrize"></div>
+        <div class="pending" id="ovPending" hidden>Reward arrives with the next weekly $OIL batch — not instant.</div>
+        <ul id="ovTerms" hidden></ul>
+        <button class="btn amber" id="bankBtn" hidden>Bank OIL</button>
+        <button class="btn ghost" id="retryBtn">Play again</button>
+      </div>
+    </div>
 
 <!-- Wallet support files — MUST sit alongside index.html in the deploy folder.
      Copied byte-for-byte from the Flappy / Pick-a-Bot deploy (all three shared, identical). -->
@@ -598,23 +615,30 @@ function syncAction(){ /* D-pad is always live; nothing to toggle */ }
 
 function showGameOver(){
   const qualified=score>=PARAMS.threshold;
-  const m=document.getElementById('modal');
-  m.innerHTML=`<div class="card ${qualified?'win':''}" role="dialog" aria-modal="true">
-    <div class="big">${score}</div>
-    <div class="prize">${qualified?`✓ you earned ${CFG.REWARD_OIL} OIL`:`${PARAMS.threshold-score} more pipes to earn ${CFG.REWARD_OIL} OIL`}</div>
-    ${qualified?`
-      <div class="pending">Reward arrives with the next weekly $OIL batch — not instant.</div>
-      <ul>
-        <li>Banking signs one transaction: ${CFG.CLAIM_SOL} SOL + a memo, to the game's faucet wallet.</li>
-        <li>That tiny SOL keeps free accounts from farming it. You'll need a little SOL in your wallet.</li>
-        <li>Up to ${CFG.DAILY_CAP_OIL} OIL a day across all earn games. Spend it in Pick-a-Bot or Spot-a-FinnBot.</li>
-      </ul>
-      <button class="btn amber" id="bankBtn">Bank ${CFG.REWARD_OIL} OIL</button>`:''}
-    <button class="btn ghost" id="againBtn">Play again</button>
-  </div>`;
-  m.querySelector('#againBtn').onclick=closeModalAndReset;
-  if(qualified) m.querySelector('#bankBtn').onclick=bank;
+  const ov=document.getElementById('overOverlay');
+  const card=document.getElementById('overCard');
+  card.className = 'card' + (qualified?' win':'');
+  /* #oScore holds the number ALONE — the shared stickiness layer parses its
+     textContent, so any prose in here would be read as part of the score. */
+  document.getElementById('oScore').textContent = score;
+  document.getElementById('ovPrize').textContent = qualified
+    ? `\u2713 you earned ${CFG.REWARD_OIL} OIL`
+    : `${PARAMS.threshold-score} more pipes to earn ${CFG.REWARD_OIL} OIL`;
+  document.getElementById('ovPending').hidden = !qualified;
+  const terms=document.getElementById('ovTerms');
+  terms.hidden = !qualified;
+  terms.innerHTML = qualified ? `
+      <li>Banking signs one transaction: ${CFG.CLAIM_SOL} SOL + a memo, to the game's faucet wallet.</li>
+      <li>That tiny SOL keeps free accounts from farming it. You'll need a little SOL in your wallet.</li>
+      <li>Up to ${CFG.DAILY_CAP_OIL} OIL a day across all earn games. Spend it in Pick-a-Bot or Spot-a-FinnBot.</li>` : '';
+  const bankBtn=document.getElementById('bankBtn');
+  bankBtn.hidden = !qualified;
+  bankBtn.textContent = `Bank ${CFG.REWARD_OIL} OIL`;
+  bankBtn.onclick = qualified ? bank : null;
+  document.getElementById('retryBtn').onclick = closeModalAndReset;
+  ov.classList.add('show');     // the class the shared stickiness layer watches
 }
+
 async function bank(){
   const btn=document.getElementById('bankBtn'); if(!btn)return;
   const len=score;
@@ -704,7 +728,7 @@ function setBankError(btn, msg){
     e.style.cssText='color:#c0392b;font-size:12px;font-weight:600;margin-bottom:8px;'; card.insertBefore(e,btn); }
   e.textContent=msg;
 }
-function closeModalAndReset(){document.getElementById('modal').innerHTML='';reset();}
+function closeModalAndReset(){document.getElementById('modal').innerHTML='';document.getElementById('overOverlay').classList.remove('show');reset();}
 
 document.getElementById('connectBtn').onclick=doConnect;
 document.getElementById('infoBtn').onclick=()=>{
