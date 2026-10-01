@@ -202,29 +202,7 @@ canvas{ touch-action:none; }
   .modepill{ min-height:34px; }
 }
 
-/* ---- 8. STICKINESS FURNITURE -------------------------------------------
-   Rendered by the fb-sticky script: a personal-best chip in the topbar and a
-   "what happened this run" line on the run-over card. No wallet, no network,
-   no engine change — it reads the score the game already prints. */
-.fb-best{
-  display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
-  font:800 11px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  color:#f2a03d; background:rgba(242,160,61,.14);
-  border:1px solid rgba(242,160,61,.38); padding:4px 9px; border-radius:999px;
-}
-.fb-best i{ font-style:normal; opacity:.72; letter-spacing:.06em; }
-.fb-best b{ color:#fdf3e7; font-weight:800; }
-.fb-best.is-new{ color:#5fd6b4; background:rgba(95,214,180,.16); border-color:rgba(95,214,180,.45); }
-.fb-runline{ margin:8px 0 0; font:700 13px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
-.fb-runline .go{ color:#5fd6b4; }
-.fb-runline .gap{ color:#f2a03d; }
-.fb-runline small{ display:block; font-weight:600; opacity:.7; font-size:11px; margin-top:3px; }
-/* On a phone the topbar is already lockup + title + mode pills + two icon
-   buttons; adding the chip pushed the game's own name out of its own bar. The
-   best score still appears where it actually drives a replay — the run-over
-   card — so the chip is a tablet-and-up affordance. */
-@media (max-width:620px){ .fb-best{ display:none; } }
-@media (orientation:landscape) and (max-height:560px){ .fb-best{ display:none; } }
+
 </style>
 </head>
 <body>
