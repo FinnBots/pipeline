@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" data-fb-vp="1">
+<title>Pipeline — earn $OIL, no Bot needed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jersey+15&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   PIPELINE — game #5 (Finn mini-game #1 · Snake-variant faucet)
+   Design: FDL v5 (plum #5f4c57, amber #f2a03d $OIL/win,
+   Jersey 15 + Plus Jakarta Sans, one-viewport, real Bots).
+   The WALLET + CLAIM layer is lifted byte-faithfully from the
+   proven Flappy Bot build; only the memo namespace (PIPE), the
+   earn metric (len), the domain string and the mobile action
+   tag differ. TEST_MODE gates RPC + network together.
+   ============================================================ */
+:root{
+  --plum:#5f4c57; --plum-deep:#3e323a; --amber:#f2a03d; --electric:#3a6ff7;
+  --peach:#f5c8a0; --cream:#fdf3e7; --ink:#2a2230; --muted:#8b7f88;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px;
+  --r-sm:8px; --r-md:14px; --r-lg:18px; --r-xl:22px;
+  --sh1:0 1px 3px rgba(62,50,58,.12); --sh2:0 4px 14px rgba(62,50,58,.16); --sh3:0 12px 34px rgba(62,50,58,.24);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100dvh;overflow:hidden;background:var(--cream);color:var(--ink);
+  font-family:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,sans-serif;}
+.wrap{height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;padding:0 var(--s3);}
+
+/* test banner */
+#testbar{background:#c0392b;color:#fff;text-align:center;font-weight:700;font-size:12px;
+  padding:5px;letter-spacing:.4px;flex:0 0 auto;}
+#testbar.hide{display:none;}
+
+/* topbar */
+.topbar{flex:0 0 auto;display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s1) var(--s2);}
+.eyebrow{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#fff;
+  background:var(--plum);padding:4px 9px;border-radius:20px;}
+.title{font-family:"Jersey 15",sans-serif;font-size:30px;line-height:1;color:var(--plum);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+.info{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--plum);color:var(--plum);
+  background:transparent;font-weight:700;font-size:15px;flex:0 0 auto;}
+
+/* quick facts — the load-bearing facts, never hidden */
+.facts{flex:0 0 auto;display:flex;gap:var(--s1);background:#fff;border:1px solid #efe2d4;
+  border-radius:var(--r-md);padding:var(--s2) var(--s3);box-shadow:var(--sh1);font-size:11.5px;font-weight:600;}
+.facts div{flex:1;text-align:center;color:var(--muted);}
+.facts b{display:block;color:var(--ink);font-size:12.5px;}
+.facts .amber b{color:var(--amber);}
+
+/* wallet bar */
+.wallet{flex:0 0 auto;display:flex;align-items:center;gap:var(--s3);margin-top:var(--s2);
+  background:#fff;border:1px solid #efe2d4;border-radius:var(--r-md);padding:var(--s2) var(--s3);box-shadow:var(--sh1);}
+.wallet .st{flex:1;font-size:12px;font-weight:600;color:var(--muted);line-height:1.35;}
+.wallet .st b{color:var(--ink);}
+.btn{font-family:"Jersey 15",sans-serif;border:none;border-radius:var(--r-sm);background:var(--plum);
+  color:#fff;font-size:17px;padding:9px 16px;letter-spacing:.5px;}
+.btn:active{background:var(--plum-deep);}
+.btn:disabled{opacity:.45;}
+.btn.amber{background:var(--amber);color:#3a2410;}
+
+/* play surface */
+.surface{flex:1 1 auto;min-height:0;margin-top:var(--s1);position:relative;
+  border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh2);border:1px solid #e8d8c6;}
+canvas{display:block;width:100%;height:100%;touch-action:none;}
+.safety{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:10.5px;
+  color:rgba(255,255,255,.72);font-weight:600;pointer-events:none;text-shadow:0 1px 3px rgba(0,0,0,.5);}
+
+/* control pad — Snake steers, so the action bar is a D-pad (kid-friendly),
+   backed by keyboard (arrows/WASD) and swipe on the surface. */
+.pad{flex:0 0 auto;padding:var(--s2) 0 var(--s1);display:grid;gap:var(--s1);
+  grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;
+  max-width:186px;width:100%;margin:0 auto;}
+.dbtn{font-family:"Jersey 15",sans-serif;border:none;border-radius:var(--r-sm);background:var(--plum);
+  color:#fff;font-size:19px;line-height:1;padding:7px 0;box-shadow:var(--sh1);}
+.dbtn:active{background:var(--plum-deep);}
+.dbtn.up{grid-column:2;grid-row:1;}
+.dbtn.left{grid-column:1;grid-row:2;}
+.dbtn.down{grid-column:2;grid-row:2;}
+.dbtn.right{grid-column:3;grid-row:2;}
+
+/* footer marketing — standing FDL v5 requirement: exactly two outbound links */
+.foot{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:var(--s2);
+  padding:0 0 max(var(--s3),env(safe-area-inset-bottom));font-size:11px;color:var(--muted);}
+.foot a{color:var(--plum);font-weight:700;text-decoration:none;}
+.foot span{opacity:.5;}
+
+/* modal overlay — never a push */
+/* The run-over card lives in its OWN overlay, not in #modal. #modal is visible
+   via `:not(:empty)` and is wiped with innerHTML, so a card inside it would
+   either never disappear or be destroyed — and the shared stickiness layer
+   binds at page LOAD, so a card that does not exist yet is one it gives up on. */
+#overOverlay{display:none}
+#overOverlay.show{position:fixed;inset:0;background:rgba(42,34,48,.55);backdrop-filter:blur(3px);
+  z-index:50;display:flex;align-items:center;justify-content:center;padding:var(--s6);}
+#modal:not(:empty){position:fixed;inset:0;background:rgba(42,34,48,.55);backdrop-filter:blur(3px);
+  z-index:50;display:flex;align-items:center;justify-content:center;padding:var(--s6);}
+.card{background:var(--cream);border-radius:var(--r-xl);max-width:400px;width:100%;padding:var(--s6);
+  box-shadow:var(--sh3);}
+.card.win{border:2px solid var(--amber);}
+.card h3{font-family:"Jersey 15",sans-serif;font-size:26px;color:var(--plum);margin-bottom:var(--s3);}
+.card p{font-size:13.5px;line-height:1.6;color:var(--ink);margin-bottom:var(--s3);}
+.card .big{font-family:"Jersey 15",sans-serif;font-size:46px;color:var(--ink);text-align:center;line-height:1;}
+.card .prize{color:var(--amber);text-align:center;font-weight:800;font-size:16px;margin-bottom:var(--s4);}
+.card ul{list-style:none;font-size:12.5px;color:var(--muted);margin-bottom:var(--s4);}
+.card li{padding:3px 0 3px 18px;position:relative;}
+.card li::before{content:"·";position:absolute;left:6px;color:var(--plum);font-weight:800;}
+.card .btn{width:100%;font-size:19px;padding:13px;margin-bottom:var(--s2);}
+.card .ghost{background:transparent;color:var(--plum);border:1.5px solid var(--plum);}
+.pending{background:#fff6ea;border:1px solid #f6dcae;border-radius:var(--r-md);padding:var(--s3);
+  font-size:12px;color:#7a5a20;margin-bottom:var(--s4);text-align:center;font-weight:600;}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+<style id="fb-brand">
+/* ===== FINNBOTS BRAND LAYER v1 (2026-09-24) ==========================
+   Append-only override, injected as <style id="fb-brand"> AFTER every other
+   style block so it wins without editing a single line of a game's own CSS.
+   Three jobs:
+     1. BRAND  — the FinnBots lockup (bot mark + FINN/BOTS wordmark) in the topbar.
+     2. CABINET — the canvas reads as an arcade screen: bezel, amber rim light, glow.
+     3. THEME  — dark-mode parity with the hub (games.finnstergram.com adapts, the
+                 games did not, so hub -> game was a light/dark slap in the face).
+   Source of truth: factory/templates/brand-layer.css. Never hand-edit a game copy;
+   change it here and re-run apply-brand.sh. ==================================== */
+:root{
+  --fb-amber:#f2a03d; --fb-plum:#5f4c57; --fb-plum-deep:#3e323a;
+  --fb-screen:#241b28; --fb-bezel:#3e323a; --fb-rim:rgba(242,160,61,.45);
+  --fb-ink:#3e323a; --fb-surface:rgba(255,255,255,.55);
+}
+
+/* ---- 1. BRAND LOCKUP --------------------------------------------------- */
+.fb-mark{
+  display:inline-flex; align-items:center; gap:6px; flex:none;
+  text-decoration:none; color:var(--fb-plum); line-height:1;
+  padding:2px 4px; border-radius:999px; -webkit-tap-highlight-color:transparent;
+}
+.fb-mark:hover{ color:var(--fb-plum-deep); }
+.fb-mark:focus-visible{ outline:3px solid var(--electric,#3a6ff7); outline-offset:2px; }
+.fb-bot{ width:22px; height:22px; flex:none; display:block; }
+.fb-word{
+  font-family:var(--disp,'Jersey 15',system-ui,sans-serif);
+  font-size:16px; letter-spacing:.5px; color:currentColor; white-space:nowrap;
+}
+.fb-word i{ font-style:normal; color:var(--fb-amber); }
+/* Phones: the topbar also carries the mode pills + icon buttons, so drop the
+   wordmark and keep the bot mark rather than letting the row overflow. */
+@media (max-width:430px){ .fb-word{ display:none; } }
+body.is-portrait .fb-bot{ width:20px; height:20px; }
+
+</style>
+<style id="fb-device">
+/* ==========================================================================
+   FinnBots DEVICE LAYER — ONE scaling contract for laptop, tablet and phone.
+   Founder rule, 2026-09-25: "all games ... need to be playable on Laptops,
+   tablets and phones."
+
+   SOURCE OF TRUTH. Never hand-edit a game's copy — edit this file and re-run
+   apply-device.js across the roster (same discipline as brand-layer.css).
+
+   It is injected as the LAST <style> in <head>, AFTER the brand layer, so it
+   wins by source order and touches no existing CSS line. Everything below
+   section 3 assumes chassis markup; apply-device.js --safe stops before it for
+   the non-chassis games whose class names mean something else.
+
+   THE MODEL, in one line: the page is exactly one visible viewport tall, the
+   chrome is whatever is left after the play surface has taken what it needs,
+   and the controls are always reachable by the thumb that owns them.
+   ========================================================================== */
+
+/* ---- 1. the page fills the VISIBLE viewport ------------------------------
+   100vh on a phone is the viewport WITHOUT the browser's collapsing chrome:
+   a vh-sized column is taller than the screen, so the controls sit under the
+   address bar and the canvas is cut off. dvh tracks the real thing, and the
+   safe-area insets keep the notch and the home indicator off the buttons. */
+:root{
+  --fb-safe-t: env(safe-area-inset-top, 0px);
+  --fb-safe-b: env(safe-area-inset-bottom, 0px);
+  --fb-safe-l: env(safe-area-inset-left, 0px);
+  --fb-safe-r: env(safe-area-inset-right, 0px);
+  --fb-tap: 48px;                     /* 44 is the accessibility floor; 48 is comfortable */
+}
+html{ height:100%; }
+body{ min-height:100svh; overscroll-behavior:none; -webkit-text-size-adjust:100%; }
+@supports (height:100dvh){ body{ min-height:100dvh; } }
+
+/* ---- 2. touch behaviour -------------------------------------------------
+   Without these a double-tap on a control zooms the page, a long press pops a
+   selection bubble mid-game, and a drag on the canvas pulls the page to
+   refresh. All three are "the game is broken" to a player on a phone. */
+.ctl,.btn,.again,.ghostbtn,.modepill,.iconbtn,button{
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+  user-select:none; -webkit-user-select:none;
+}
+canvas{ touch-action:none; }
+
+/* ---- 3. hit targets on anything with a finger --------------------------- */
+@media (pointer:coarse){
+  .ctl{ min-width:var(--fb-tap); min-height:var(--fb-tap); }
+  .btn,.again,.ghostbtn{ min-height:var(--fb-tap); }
+  .modepill{ min-height:34px; }
+}
+
+
+</style>
+<style id="fb-outro-css">
+/* ==========================================================================
+   FinnBots OUTRO LAYER — the ending screen.  Founder, 2026-10-02, verbatim:
+   "there need to be a cool ending screen to games not just they end or game
+   over".
+
+   SOURCE OF TRUTH. Injected by apply-outro.js as <style id="fb-outro-css">,
+   last in <head> so it lands after the brand and device layers and wins by
+   source order. Never hand-edit a game's copy: edit this file and re-run the
+   injector across the roster.
+
+   What was there before: the chassis run-over card is a RECEIPT. "RUN OVER",
+   one score, one time, a retry button — identical whether the player cleared
+   the last round or walked into the first enemy. Nothing resolves, nothing is
+   celebrated, and the score has nothing to sit beside, so a good run and a bad
+   run feel the same. This layer turns that receipt into the four beats an
+   arcade ending actually has: a VERDICT that distinguishes winning from dying,
+   a TALLY that counts up, a RANK the run earned against the real board, and a
+   HOOK back into the next run.
+
+   Rules it is built to:
+     - every rule is scoped under .fb-outro or a body.fb-outro-* state, so a
+       game without the layer's own nodes is untouched. No existing selector is
+       redefined.
+     - the chassis card's own furniture stays in the DOM and keeps its text:
+       #oScore still holds the final score for the stickiness layer, the score
+       memo and the gates that read it. We hide the plain readout and draw our
+       own beside it, we never retype theirs.
+     - laptop / tablet / phone from ONE layer (Founder, 2026-09-25). The card is
+       height-bound on a landscape phone, so there is a compact mode at
+       max-height:560px that drops the hero and tightens the tally rather than
+       scrolling.
+     - prefers-reduced-motion kills every animation, and the ending still reads:
+       the tally lands on its final value, the rank bar is drawn full.
+   ========================================================================== */
+
+/* ---- 1. the outro block inside the existing card --------------------- */
+.fb-outro{ display:block; text-align:left; margin:10px 0 2px; }
+.fb-outro[hidden]{ display:none; }
+
+/* the chassis ".big" score readout: kept in the DOM, hidden from view, because
+   the tally below says the same number with ceremony. visibility, not display:
+   a display:none subtree reports zero size and two gates measure this node. */
+.fb-outro-on .card .big{ position:absolute; width:1px; height:1px; overflow:hidden;
+  clip:rect(0,0,0,0); white-space:nowrap; }
+/* the per-game stat line is harvested into tally rows, so the original would be
+   a duplicate */
+.fb-outro-on .card > p.fb-outro-src{ display:none; }
+
+/* ---- 2. the verdict band -------------------------------------------- */
+.fb-outro-kicker{ display:block; font-family:var(--body,system-ui); font-size:10.5px;
+  letter-spacing:.18em; text-transform:uppercase; font-weight:700;
+  color:inherit; opacity:.6; margin:0 0 2px; text-align:center; }
+.fb-outro-win .fb-outro-kicker{ color:var(--amber,#f2a03d); opacity:1; }
+
+/* ---- 3. the hero. Founder, 2026-09-25: "the hero needs to be Bot 106" ---
+   He is the one who just played the run, so he is the one on the ending
+   screen: lit and lifted on a clear, dimmed and tilted on a loss. */
+.fb-outro-hero{ display:block; margin:6px auto 8px; width:76px; height:76px;
+  object-fit:contain; image-rendering:auto;
+  filter:drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
+/* `display:block` on a class BEATS the UA's `[hidden]` rule, so the hero the
+   layer hides on a decode error was still laid out — and a game that ships no
+   hero PNG (Bot Merge) drew a broken-image box in the middle of its ending.
+   Caught by playing the one game on the roster without the asset. */
+.fb-outro-hero[hidden]{ display:none; }
+.fb-outro-win .fb-outro-hero{
+  animation:fb-outro-pop .5s cubic-bezier(.2,1.5,.4,1) both;
+  filter:drop-shadow(0 0 14px rgba(242,160,61,.75)) drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
+.fb-outro-end .fb-outro-hero{ transform:rotate(-7deg); opacity:.82; }
+@keyframes fb-outro-pop{ from{ transform:scale(.4) translateY(14px); opacity:0 }
+                           to{ transform:none; opacity:1 } }
+
+/* ---- 4. the tally ---------------------------------------------------- */
+.fb-outro-tally{ list-style:none; margin:0; padding:0; }
+.fb-outro-tally li{ display:flex; align-items:baseline; justify-content:space-between;
+  gap:10px; font-size:12.5px; line-height:1.25; padding:3px 0;
+  color:inherit;
+  border-bottom:1px dashed rgba(128,128,128,.3);
+  opacity:0; transform:translateY(4px);
+  animation:fb-outro-row .22s ease-out both; }
+.fb-outro-tally li b{ font-family:var(--disp,system-ui); font-size:14px; font-weight:400;
+  color:inherit; white-space:nowrap; }
+.fb-outro-tally li i{ font-style:normal; letter-spacing:.06em; text-transform:uppercase;
+  font-size:10.5px; font-weight:700; color:inherit; opacity:.62; }
+@keyframes fb-outro-row{ to{ opacity:1; transform:none } }
+
+/* the total. This is the line the whole screen exists to deliver, so it is the
+   only thing on the card in the display face at full size. */
+.fb-outro-total{ display:flex; align-items:baseline; justify-content:space-between;
+  gap:10px; margin:8px 0 2px; padding-top:7px; border-top:2px solid rgba(128,128,128,.4); }
+.fb-outro-total i{ font-style:normal; font-family:var(--body,system-ui); font-size:11px;
+  letter-spacing:.16em; text-transform:uppercase; font-weight:700;
+  color:inherit; opacity:.62; }
+.fb-outro-total b{ font-family:var(--disp,system-ui); font-size:30px; line-height:1;
+  color:var(--amber,#f2a03d); font-weight:400;
+  font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1; }
+.fb-outro-counting .fb-outro-total b{ color:inherit; }
+
+/* ---- 5. the rank the run earned ------------------------------------- */
+.fb-outro-rank{ margin:9px 0 0; }
+.fb-outro-rank .fb-outro-title{ display:flex; align-items:center; justify-content:space-between;
+  gap:8px; font-family:var(--disp,system-ui); font-size:15px; line-height:1.1;
+  color:inherit; }
+.fb-outro-rank .fb-outro-title em{ font-style:normal; font-family:var(--body,system-ui);
+  font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:inherit; opacity:.62; white-space:nowrap; }
+.fb-outro-bar{ position:relative; height:7px; margin:6px 0 0; border-radius:999px;
+  background:rgba(128,128,128,.28); overflow:hidden; }
+.fb-outro-bar span{ position:absolute; inset:0 auto 0 0; width:0;
+  border-radius:999px; background:var(--amber,#f2a03d);
+  transition:width .7s cubic-bezier(.2,.8,.3,1); }
+.fb-outro-note{ display:block; margin:5px 0 0; font-size:11.5px; line-height:1.4;
+  color:inherit; opacity:.75; }
+.fb-outro-note b{ color:inherit; font-weight:700; }
+
+/* ---- 5b. the chassis button row ------------------------------------
+   The stickiness layer inserts its run-line immediately before #retryBtn, so
+   on a game whose buttons live in a flex .btnrow (BotFord) the line becomes a
+   FLEX ITEM and sits beside the button instead of above it. It was tolerable
+   on the old two-line card and looks broken under a full ending screen, so
+   give it its own row — scoped to .fb-outro-on, so a game without this layer
+   keeps exactly the layout it shipped with. */
+.fb-outro-on .fb-runline small{ display:block; }
+.fb-outro-on .card .btnrow{ flex-wrap:wrap; justify-content:center; }
+.fb-outro-on .card .btnrow > .fb-runline{ flex:1 0 100%; margin:0 0 4px; text-align:center; }
+
+/* ---- 6. the skip affordance ----------------------------------------- */
+.fb-outro-skip{ display:block; margin:7px 0 0; font-size:10.5px; letter-spacing:.08em;
+  text-transform:uppercase; font-weight:700; color:inherit;
+  text-align:center; opacity:.55; }
+.fb-outro-counting .fb-outro-skip{ opacity:.8 }
+.fb-outro:not(.fb-outro-counting) .fb-outro-skip{ display:none }
+
+/* ---- 7. the win flourish. Pure CSS, no canvas, no library: eight sparks on
+   a one-shot animation, removed from the DOM when it ends. Decorative only —
+   aria-hidden, pointer-events:none, and it never covers the retry button. */
+.fb-outro-sparks{ position:absolute; inset:0; overflow:hidden; pointer-events:none;
+  border-radius:inherit; }
+.fb-outro-sparks i{ position:absolute; top:-8px; width:7px; height:11px; border-radius:2px;
+  opacity:0; animation:fb-outro-fall 1.5s linear both; }
+@keyframes fb-outro-fall{
+  0%{ opacity:0; transform:translateY(-10px) rotate(0) }
+  12%{ opacity:1 }
+  100%{ opacity:0; transform:translateY(420px) rotate(540deg) } }
+
+/* the card becomes the positioning context for the sparks and sits above the
+   overlay's own backdrop blur */
+.fb-outro-on .card{ position:relative; }
+
+/* ---- 8. laptop / tablet / phone ------------------------------------- */
+/* a landscape phone gives the card ~360px of height: drop the hero, tighten
+   every row, shrink the total. The ending still has all four beats. */
+@media (max-height:560px){
+  /* measured on a 740x360 landscape phone: the full card came to 378px against
+     360px of viewport, which clipped the verdict off the top. These reclaim
+     ~30px of chrome so the whole ending, including the replay button, fits
+     without scrolling. */
+  .fb-outro-on .card{ padding:14px 18px }
+  .fb-outro{ margin:5px 0 0 }
+  .fb-outro-kicker{ font-size:9.5px; margin:0 }
+  .fb-outro-hero{ display:none }
+  .fb-outro-tally li{ font-size:11.5px; padding:1px 0 }
+  .fb-outro-tally li b{ font-size:12.5px }
+  .fb-outro-total{ margin:5px 0 0; padding-top:5px }
+  .fb-outro-total b{ font-size:23px }
+  .fb-outro-rank{ margin:6px 0 0 }
+  .fb-outro-note{ font-size:10.5px }
+  .fb-outro-sparks{ display:none }
+}
+/* a very narrow phone: let a long row wrap instead of squeezing the number */
+@media (max-width:360px){
+  .fb-outro-tally li{ font-size:11.5px }
+  .fb-outro-total b{ font-size:26px }
+}
+
+/* ---- 9. INK IS INHERITED, NOT ASSUMED ------------------------------
+   Every colour above is `inherit` plus an opacity, and every rule and track is
+   a neutral grey with alpha. There is no dark-mode block, because there is
+   nothing left for one to correct.
+
+   This replaced a block that redeclared each node for `prefers-color-scheme:
+   dark`, which quietly assumed every run-over card is LIGHT in light mode. Two
+   are not: Bot Merge's is `--card`/`--ink`, and Bot Pong's is dark in both
+   schemes. A real match played to 11-1 on Bot Pong rendered the whole tally in
+   near-black on near-black — present in the DOM, read back correctly by the
+   gate, and invisible to the player. Inheriting is not a tidier way to write
+   the same thing; it is the only version that cannot be wrong about a surface
+   it has never seen. */
+
+/* ---- 10. reduced motion: no animation, and the ending still reads ----
+   Every animated property above has its resting state asserted here, because
+   `animation:none` on a `both`-filled keyframe leaves the element at its FROM
+   value — which for a tally row is opacity:0. Turning motion off must not turn
+   the ending screen off. */
+@media (prefers-reduced-motion:reduce){
+  .fb-outro-tally li{ opacity:1; transform:none; animation:none }
+  .fb-outro-hero{ animation:none; transform:none }
+  .fb-outro-bar span{ transition:none }
+  .fb-outro-sparks{ display:none }
+}
+</style>
+</head>
+<body>
+<div id="testbar">🧪 TEST MODE — points at your local validator (127.0.0.1), not mainnet.</div>
+<div class="wrap">
+  <div class="topbar">
+    <!--fb:eyebrowspan--><a class="fb-mark" href="https://games.finnstergram.com" aria-label="FinnBots — more games"><svg class="fb-bot" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="M14 5.4V3.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="14" cy="2" r="1.85" fill="var(--fb-amber)"/><rect x="1" y="11" width="2.6" height="6" rx="1.3" fill="currentColor"/><rect x="24.4" y="11" width="2.6" height="6" rx="1.3" fill="currentColor"/><rect x="3.6" y="5" width="20.8" height="18" rx="5.5" fill="currentColor"/><rect x="6.6" y="8.6" width="14.8" height="9.4" rx="2.6" fill="var(--fb-screen)"/><circle cx="10.7" cy="13.3" r="1.9" fill="var(--fb-amber)"/><circle cx="17.3" cy="13.3" r="1.9" fill="var(--fb-amber)"/></svg><span class="fb-word">FINN<i>BOTS</i></span></a><!--/fb-->
+    <span class="title">Pipeline</span>
+    <button class="info" id="infoBtn" aria-label="How it works">ⓘ</button>
+  </div>
+
+  <div class="facts">
+    <div><b>Free</b>to play</div>
+    <div class="amber"><b id="fThr">10 pipes</b>earns 5 OIL</div>
+    <div><b>Weekly</b>batch payout</div>
+  </div>
+
+  <div class="wallet">
+    <div class="st" id="wStatus">Play free right now. Connect only when you want to <b>bank</b> what you earn.</div>
+    <button class="btn" id="connectBtn">Connect</button>
+  </div>
+
+  <div class="surface">
+    <canvas id="c"></canvas>
+    <div class="safety">We never ask for your seed phrase, or to move your Bots or tokens.</div>
+  </div>
+
+  <div class="pad">
+    <button class="dbtn up"    id="dUp"    aria-label="Up">▲</button>
+    <button class="dbtn left"  id="dLeft"  aria-label="Left">◀</button>
+    <button class="dbtn down"  id="dDown"  aria-label="Down">▼</button>
+    <button class="dbtn right" id="dRight" aria-label="Right">▶</button>
+  </div>
+
+  <div class="foot">
+    <a href="https://magiceden.io/marketplace/finnbot" target="_blank" rel="noopener">Buy a Bot</a>
+    <span>·</span>
+    <a href="https://games.finnstergram.com/" target="_blank" rel="noopener">More games</a>
+    <span>·</span>
+    <a href="https://pipe.finnstergram.com/leaderboard.html" target="_blank" rel="noopener">Leaderboard</a>
+  </div>
+</div>
+<div id="modal"></div>
+    <div id="overOverlay">
+      <div class="card" id="overCard" role="dialog" aria-modal="true">
+        <div class="big" id="oScore">0</div>
+        <div class="prize" id="ovPrize"></div>
+        <div class="pending" id="ovPending" hidden>Reward arrives with the next weekly $OIL batch — not instant.</div>
+        <ul id="ovTerms" hidden></ul>
+        <button class="btn amber" id="bankBtn" hidden>Bank OIL</button>
+        <button class="btn ghost" id="retryBtn">Play again</button>
+      </div>
+    </div>
+
+<!-- Wallet support files — MUST sit alongside index.html in the deploy folder.
+     Copied byte-for-byte from the Flappy / Pick-a-Bot deploy (all three shared, identical). -->
+<script src="solana-web3.iife.min.js?v=20260828a"></script>
+<script src="phantom-deeplink-libs.min.js?v=20260828a"></script>
+<script src="phantom-mobile.js?v=20260828a"></script>
+
+<script>
+"use strict";
+var BUILD_TAG = 'pipeline-v1-20260904a';
+console.log('[pipeline] build', BUILD_TAG);
+/* ============================================================
+   0. HEADLESS  — the gates require() this engine with no DOM.
+   Every sim-driving gate (verify-inputs, playtest, skill-ladder) used to SKIP
+   this game with "document is not defined", so its four controls had never
+   been examined by anything. Detect first; every DOM handle then goes through
+   $id, which returns null headless instead of throwing.
+   ============================================================ */
+const HEADLESS = (typeof document === 'undefined');
+const $id = id => HEADLESS ? null : document.getElementById(id);
+const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+/* ============================================================
+   1. CONFIG  — TEST_MODE is the master switch (four-value pattern).
+   NEVER commit/deploy as false without explicit Founder confirmation
+   in that run's own output. Byte-count (wc -c) every deploy.
+   ============================================================ */
+const TEST_MODE = false;   // <-- master switch. Stays true until Founder confirms go-live.
+                          // Controls RPC + network together (four-value pattern). true = local validator.
+
+const CFG = TEST_MODE ? {
+  NETWORK: 'local-test-validator',
+  RPC: 'http://127.0.0.1:8899',                                   // local solana-test-validator
+  MEMO_PROGRAM: 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr',
+  FAUCET_ADDRESS: 'FfUf31sPDqjV3f7HBLCJ8ra9GZXVQe6jW4kchxnEGrHa', // SHARED faucet — same wallet as Flappy, so the daily ceiling is ONE counter
+  CLAIM_SOL: 0.005, CLAIM_LAMPORTS: 5000000,                       // MUST equal scanner EARN_CLAIM_LAMPORTS
+  REWARD_OIL: 5, DAILY_CAP_OIL: 25, MEMO_NS: 'PIPE', MEMO_METRIC: 'len',
+  BOT_IMG_URL: 'assets/hero/bot-106.png',
+  OIL_IMG_URL: 'https://arweave.net/XGTR8A5zDaD_S3obMixSknOjtMEbVRu1dqSopBwS1H0'   // $OIL logo — pink oil can (287.png)
+} : {
+  NETWORK: 'mainnet',
+  RPC: 'https://finnbots-rpc.mart-kin1000.workers.dev',            // Cloudflare Worker proxy — never Helius direct
+  MEMO_PROGRAM: 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr',
+  FAUCET_ADDRESS: 'FfUf31sPDqjV3f7HBLCJ8ra9GZXVQe6jW4kchxnEGrHa', // SHARED faucet wallet — Flappy + Pipeline claims land here (shared cap/ceiling)
+  CLAIM_SOL: 0.005, CLAIM_LAMPORTS: 5000000,                       // MUST equal scanner EARN_CLAIM_LAMPORTS
+  REWARD_OIL: 5, DAILY_CAP_OIL: 25, MEMO_NS: 'PIPE', MEMO_METRIC: 'len',
+  BOT_IMG_URL: 'assets/hero/bot-106.png',  // Bot #106 — keyed transparent (no cyan box)
+  OIL_IMG_URL: 'https://arweave.net/XGTR8A5zDaD_S3obMixSknOjtMEbVRu1dqSopBwS1H0'   // $OIL logo — pink oil can (287.png), the token icon on Solscan/wallets
+};
+
+/* LOCKED FEEL — grid + pace. threshold = pipes to connect to earn. */
+const PARAMS = {
+  cols:15, rows:25,
+  tickStart:140, tickFloor:80, tickStep:3,   // ms per move; speeds up as you grow
+  startLen:3, threshold:10
+};
+{ const fThr=$id('fThr'); if(fThr) fThr.textContent = PARAMS.threshold + ' pipes'; }
+
+/* ============================================================
+   2. WALLET LAYER  — the ONLY on-chain surface. Lifted verbatim from
+   the proven Flappy build: desktop injected provider signs inline;
+   mobile uses phantom-mobile.js deeplink (browse front-door → sign
+   round-trip → resume on reload). Phantom SIGNS only — WE submit,
+   through CFG.RPC (Worker proxy in live mode, local validator in test).
+   The claim is a SOL transfer (earners hold no OIL) + a PIPE memo.
+   ============================================================ */
+const delay = ms => new Promise(r=>setTimeout(r,ms));
+let wallet = { pubkey:null };
+function hasWallet(){ return !!wallet.pubkey; }
+function shortAddr(a){ return a.slice(0,4)+'…'+a.slice(-4); }
+
+function getProvider(){
+  if(window.phantom && window.phantom.solana && window.phantom.solana.isPhantom) return window.phantom.solana;
+  if(window.solana && window.solana.isPhantom) return window.solana;
+  return null;
+}
+function setWalletStatus(html, warn){
+  const s=document.getElementById('wStatus');
+  s.innerHTML = warn ? '<b style="color:#c0392b">'+html+'</b>' : html;
+}
+function onConnected(){
+  setWalletStatus('Connected: <b>'+shortAddr(wallet.pubkey)+'</b>. Bank your OIL when a run qualifies.');
+  const b=document.getElementById('connectBtn'); b.textContent='✓ Connected'; b.disabled=true;
+}
+
+async function doConnect(){
+  const provider=getProvider();
+  if(!provider){
+    if(window.PhantomMobile && PhantomMobile.isMobile()){
+      const inBrowse=new URLSearchParams(location.search).get('src')==='browse';
+      if(!inBrowse){
+        // Front door: open this page INSIDE Phantom's own browser, where the
+        // provider IS injected — connect + sign become in-place popups.
+        setWalletStatus('Opening this game inside Phantom\u2019s browser…');
+        const target=location.origin+location.pathname+'?src=browse';
+        location.href='https://phantom.app/ul/browse/'+encodeURIComponent(target)+'?ref='+encodeURIComponent(location.origin);
+        return;
+      }
+      // Inside Phantom but still no provider — fall back to the encrypted redirect.
+      setWalletStatus('Opening Phantom — approve, then you\u2019ll come straight back here.');
+      PhantomMobile.connect(location.origin+location.pathname);
+      return;
+    }
+    setWalletStatus('Phantom isn\u2019t reachable here. If this is the chat preview, that\u2019s expected — it\u2019s a sealed window. Open pipe.finnstergram.com in your own browser with Phantom.', true);
+    return;
+  }
+  const b=document.getElementById('connectBtn'); b.disabled=true; b.textContent='Connecting…';
+  try{
+    const resp=await provider.connect();
+    wallet.pubkey=resp.publicKey.toString();
+    onConnected();
+  }catch(e){
+    b.disabled=false; b.textContent='Connect';
+    setWalletStatus('Connection cancelled. Tap Connect to try again.', true);
+  }
+}
+
+// ---- transaction builders ----
+function buildMemoIx(ownerPk, text){
+  return new solanaWeb3.TransactionInstruction({
+    programId: new solanaWeb3.PublicKey(CFG.MEMO_PROGRAM),
+    keys: [{ pubkey: ownerPk, isSigner:true, isWritable:false }],
+    data: new TextEncoder().encode(text)
+  });
+}
+async function buildClaimTx(ownerPk, len, connection){
+  const tx=new solanaWeb3.Transaction();
+  tx.add(
+    solanaWeb3.SystemProgram.transfer({
+      fromPubkey: ownerPk,
+      toPubkey: new solanaWeb3.PublicKey(CFG.FAUCET_ADDRESS),
+      lamports: CFG.CLAIM_LAMPORTS
+    }),
+    buildMemoIx(ownerPk, CFG.MEMO_NS+'|earn|'+CFG.MEMO_METRIC+'='+len)
+  );
+  tx.feePayer=ownerPk;
+  const latest=await connection.getLatestBlockhash();
+  tx.recentBlockhash=latest.blockhash;
+  return tx;
+}
+async function confirmSignature(connection, signature, timeoutMs){
+  const start=Date.now();
+  while(Date.now()-start < timeoutMs){
+    const res=await connection.getSignatureStatuses([signature]);
+    const st=res && res.value && res.value[0];
+    if(st){
+      if(st.err) throw new Error('The claim failed on-chain — nothing was banked. Please try again.');
+      if(st.confirmationStatus==='confirmed' || st.confirmationStatus==='finalized') return true;
+    }
+    await delay(1500);
+  }
+  return false;
+}
+
+// ---- mobile deeplink resume — runs once on every page load ----
+async function resumePhantomState(){
+  const action=new URLSearchParams(location.search).get('phantom_action');
+  const rawParams=location.search;
+  if(!action){
+    if(!wallet.pubkey && window.PhantomMobile && PhantomMobile.hasSession()){
+      wallet.pubkey=PhantomMobile.getSessionPublicKey(); onConnected();
+    }
+    return;
+  }
+  const result=window.PhantomMobile ? PhantomMobile.consumePendingRedirect('pipe_claim') : null;
+  if(result && result.type==='connect'){ wallet.pubkey=result.publicKey; onConnected(); return; }
+  if(result && result.type==='signTransaction'){
+    const rp=new URLSearchParams(rawParams);
+    const lenFromUrl=parseInt(rp.get('len'),10);
+    const ownerFromUrl=rp.get('owner');
+    if(!wallet.pubkey) wallet.pubkey=(PhantomMobile.hasSession()&&PhantomMobile.getSessionPublicKey())||ownerFromUrl||null;
+    try{ const u=new URL(location.href); u.searchParams.delete('len'); u.searchParams.delete('owner');
+      history.replaceState({},document.title,u.pathname+(u.search||'')+u.hash); }catch(e){}
+    resumeClaimAfterSign(result.txBytes, lenFromUrl);
+    return;
+  }
+  if(result && result.type==='error'){ setWalletStatus(result.message, true); }
+}
+
+/* ============================================================
+   3. GAME ENGINE  — Snake ("Pipeline"): steer the Bot to connect
+   oil-drum pipe segments; grow longer; don't hit a wall or yourself.
+   Grid-stepped, virtual world W×H letterboxed onto the surface.
+   ============================================================ */
+const W=360,H=640;
+const COLS=PARAMS.cols, ROWS=PARAMS.rows;
+const CELL=Math.floor(Math.min(W/COLS, H/ROWS));
+const BOARD_W=COLS*CELL, BOARD_H=ROWS*CELL;
+const BX0=Math.floor((W-BOARD_W)/2), BY0=Math.floor((H-BOARD_H)/2);
+const cv=$id('c'), ctx=cv?cv.getContext('2d'):null;
+let scale=1,dpr=1,offX=0,offY=0;
+function resize(){
+  if(HEADLESS){ scale=1; dpr=1; offX=0; offY=0; return; }   /* no layout to read */
+  const r=cv.parentElement.getBoundingClientRect();
+  dpr=Math.min(window.devicePixelRatio||1,3);
+  scale=Math.min(r.width/W,r.height/H);
+  cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr);
+  offX=(r.width-W*scale)/2; offY=(r.height-H*scale)/2;
+}
+if(!HEADLESS) window.addEventListener('resize',()=>{resize();});
+
+/* real Bot sprite (FDL: real Bots always; fail to a clean swatch, never broken) */
+const botImg=HEADLESS?null:new Image(); let botReady=false;
+// No crossOrigin: we only drawImage (never read pixels back), so a tainted
+// canvas is harmless and the sprite loads from any host, CORS or not.
+if(botImg && CFG.BOT_IMG_URL){ botImg.onload=()=>botReady=true; botImg.onerror=()=>{botReady=false;}; botImg.src=CFG.BOT_IMG_URL; }
+/* $OIL token icon (pink oil can) for the pickups — draw-only, CORS-independent */
+const oilImg=HEADLESS?null:new Image(); let oilReady=false;
+if(oilImg && CFG.OIL_IMG_URL){ oilImg.onload=()=>oilReady=true; oilImg.onerror=()=>{oilReady=false;}; oilImg.src=CFG.OIL_IMG_URL; }
+
+/* audio (synthesised) */
+let AC=null;
+function audio(){ if(HEADLESS) return null; if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}} if(AC&&AC.state==='suspended')AC.resume(); return AC; }
+function blip(type){
+  const a=audio(); if(!a)return; const t=a.currentTime;
+  if(type==='turn'){const o=a.createOscillator(),g=a.createGain();o.type='square';
+    o.frequency.setValueAtTime(520,t);g.gain.setValueAtTime(.06,t);g.gain.exponentialRampToValueAtTime(.001,t+.07);o.connect(g).connect(a.destination);o.start(t);o.stop(t+.08);}
+  else if(type==='score'){[660,990].forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();const s=t+i*.06;
+    o.type='triangle';o.frequency.setValueAtTime(f,s);g.gain.setValueAtTime(.1,s);g.gain.exponentialRampToValueAtTime(.001,s+.14);o.connect(g).connect(a.destination);o.start(s);o.stop(s+.15);});}
+  else if(type==='crash'){const o=a.createOscillator(),g=a.createGain();o.type='sawtooth';
+    o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(70,t+.3);
+    g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.001,t+.34);o.connect(g).connect(a.destination);o.start(t);o.stop(t+.35);}
+  else if(type==='earn'){[523,659,784,1047].forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();const s=t+i*.08;
+    o.type='triangle';o.frequency.setValueAtTime(f,s);g.gain.setValueAtTime(.11,s);g.gain.exponentialRampToValueAtTime(.001,s+.2);o.connect(g).connect(a.destination);o.start(s);o.stop(s+.22);});}
+}
+
+/* ---- THE RUN STATE ------------------------------------------------------
+   ONE object holds everything the sim reads and writes, the four controls
+   included, so a gate can drive the SHIPPED engine instead of skipping the
+   game. It is a plain object by design: the skill gate forks a run by cloning.
+     `mode`  ready | playing | dead — the beat, a sub-state INSIDE phase 'play'
+     `phase` the chassis termination contract, play | dead, kept in lockstep by
+             setMode(). Exporting stepGame opts this game into that contract,
+             and a phase the gate cannot read is a game that never ends.
+   `best`, the shake, the flash and the particles are PRESENTATION and stay
+   module-level on purpose — a clone of the run must not carry them.
+   --------------------------------------------------------------------- */
+let G=null, best=0, shake=0, flash=0, deadAt=0, particles=[];
+
+/* Deterministic RNG, seeded ON the run state. The skill gate forks a run by
+   REPLAY when it cannot clone one, and a replay of a Math.random() world is a
+   different world — so the gate would have to call this game unmeasurable. */
+function rnd(){ G.seed=(G.seed*1664525+1013904223)>>>0; return G.seed/4294967296; }
+function setMode(v){ G.mode=v; G.phase=(v==='dead')?'dead':'play'; }
+
+function newRun(seed){
+  const cy=Math.floor(ROWS/2);
+  G={ phase:'play', mode:'playing', seed:((seed>>>0)||1),
+      snake:[], dir:{x:1,y:0}, nextDir:{x:1,y:0}, food:null, score:0, acc:0,
+      inUp:false, inDown:false, inLeft:false, inRight:false, _turnScan:0 };
+  for(let i=0;i<PARAMS.startLen;i++) G.snake.push({x:5-i,y:cy});
+  spawnFood();
+  return G;
+}
+function reset(){
+  newRun((Date.now()^0x9e3779b9)>>>0);
+  setMode('ready');                       /* the screen waits for the first tap */
+  shake=0; flash=0; particles=[];
+  syncAction();
+}
+function cellFree(x,y){ for(const s of G.snake){ if(s.x===x&&s.y===y) return false; } return true; }
+function spawnFood(){
+  /* Pick from the cells that are actually free. Rejection sampling used to give
+     up after 500 tries and drop the pipe INSIDE the snake, where the only way to
+     reach it is to die — rare, but it only ever happened to your best run. */
+  const free=[];
+  for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++) if(cellFree(x,y)) free.push({x,y});
+  if(!free.length){ G.food=null; return; }            // board full = you have won
+  G.food=free[Math.floor(rnd()*free.length)];
+}
+function tickMs(){ return Math.max(PARAMS.tickFloor, PARAMS.tickStart - G.score*PARAMS.tickStep); }
+
+function setDir(nx,ny){
+  if(G.mode==='dead') return;
+  if(G.mode==='ready'){ setMode('playing'); G.dir={x:nx,y:ny}; G.nextDir={x:nx,y:ny}; blip('turn'); syncAction(); return; }
+  // block a 180° reversal into the neck
+  if(nx===-G.dir.x && ny===-G.dir.y) return;
+  G.nextDir={x:nx,y:ny}; blip('turn');
+}
+/* The DOM half's controls: raise a flag and let the sim take it on its own
+   tick. The d-pad, the arrow keys and the swipe all used to call setDir()
+   straight into the sim, which is why no gate could steer this game — its four
+   controls existed only as DOM event handlers. */
+function press(nx,ny){
+  if(!G || G.mode==='dead') return;
+  if(ny<0) G.inUp=true; else if(ny>0) G.inDown=true;
+  else if(nx<0) G.inLeft=true; else G.inRight=true;
+}
+function tick(){
+  G.dir=G.nextDir;
+  const head={x:G.snake[0].x+G.dir.x, y:G.snake[0].y+G.dir.y};
+  if(head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS) return die();
+  for(const s of G.snake){ if(s.x===head.x&&s.y===head.y) return die(); }
+  G.snake.unshift(head);
+  if(G.food && head.x===G.food.x && head.y===G.food.y){ G.score++; onScore(head); spawnFood(); }
+  else G.snake.pop();
+}
+/* THE SIM CONTRACT. The browser frame loop and every gate go through this one
+   door, so what a gate drives is what a player plays. `s` may be a FORK of the
+   run (the skill gate clones it), so re-point at whatever we are handed. */
+const TURNS=[['inUp',0,-1],['inDown',0,1],['inLeft',-1,0],['inRight',1,0]];
+function stepGame(s, dtMs){
+  if(s && s!==G) G=s;
+  const ev={};
+  /* ROUND-ROBIN, not a fixed priority. Two directions asserted in the same
+     frame is something only a harness (or two thumbs) does, and under a fixed
+     order the loser is starved FOREVER — which reads as "this control does
+     nothing" for whichever direction the carrier outranks. Take them in turn. */
+  let pick=-1;
+  for(let n=0;n<4;n++){ const i=(G._turnScan+n)%4; if(G[TURNS[i][0]]){ pick=i; break; } }
+  for(const t of TURNS) G[t[0]]=false;
+  if(pick>=0){ G._turnScan=(pick+1)%4; setDir(TURNS[pick][1],TURNS[pick][2]); }
+  if(G.mode!=='playing'){ G.acc=0; return ev; }
+  let dt=Math.min(dtMs,250);
+  G.acc+=dt; let g=0; const ms=tickMs();
+  while(G.acc>=ms && g++<8){ tick(); G.acc-=ms; if(G.mode!=='playing') break; }
+  return ev;
+}
+function onScore(head){ blip('score'); shake=Math.min(shake+2,4);
+  const p=cellPx(head); for(let i=0;i<8;i++)particles.push(part(p.x,p.y,'#f2a03d',1.2,60)); syncAction(); }
+function die(){ if(G.mode==='dead')return; setMode('dead'); deadAt=nowMs(); blip('crash'); shake=14; flash=1;
+  const p=cellPx(G.snake[0]); for(let i=0;i<26;i++)particles.push(part(p.x,p.y,'#e07a5f',2.4,150));
+  if(G.score>best)best=G.score; syncAction(); showGameOver(); }
+function part(x,y,c,sp,life){const a=Math.random()*Math.PI*2,s=(Math.random()*.6+.4)*sp*90;
+  return{x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-40,life:life/1000,max:life/1000,color:c,size:Math.random()*3+2};}
+function updP(dt){for(const pt of particles){pt.vy+=520*dt;pt.x+=pt.vx*dt;pt.y+=pt.vy*dt;pt.life-=dt;}particles=particles.filter(p=>p.life>0);}
+
+function cellPx(c){ return {x:BX0+c.x*CELL+CELL/2, y:BY0+c.y*CELL+CELL/2}; }
+
+/* render */
+function render(){
+  if(!ctx||!G) return;
+  /* Locals, so the drawing below is untouched and still reads ONE run state. */
+  const snake=G.snake, dir=G.dir, food=G.food, score=G.score, state=G.mode;
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.save(); ctx.translate(offX,offY); ctx.scale(scale,scale);
+  ctx.beginPath();ctx.rect(0,0,W,H);ctx.clip();
+  let sx=0,sy=0; if(shake>0){sx=(Math.random()*2-1)*shake;sy=(Math.random()*2-1)*shake;shake*=.86;if(shake<.3)shake=0;} ctx.translate(sx,sy);
+  // dusk backdrop — deep plum to peach horizon (matches the FinnBots dusk)
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#3e323a');g.addColorStop(.45,'#7a5f6a');g.addColorStop(.8,'#c98f76');g.addColorStop(1,'#f2b183');
+  ctx.fillStyle=g;ctx.fillRect(-20,-20,W+40,H+40);
+  // board panel (deeper for contrast against the bright pipes)
+  ctx.fillStyle='rgba(30,24,38,.55)';ctx.fillRect(BX0,BY0,BOARD_W,BOARD_H);
+  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=2;ctx.strokeRect(BX0,BY0,BOARD_W,BOARD_H);
+  // grid lines (subtle)
+  ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=1;
+  for(let i=1;i<COLS;i++){ctx.beginPath();ctx.moveTo(BX0+i*CELL,BY0);ctx.lineTo(BX0+i*CELL,BY0+BOARD_H);ctx.stroke();}
+  for(let j=1;j<ROWS;j++){ctx.beginPath();ctx.moveTo(BX0,BY0+j*CELL);ctx.lineTo(BX0+BOARD_W,BY0+j*CELL);ctx.stroke();}
+  // food = the $OIL token icon (pink oil can); clean amber fallback, never a broken image
+  if(food){const fp=cellPx(food),d=CELL*0.84,r=CELL*0.34;
+    if(oilReady){ctx.imageSmoothingEnabled=false;
+      ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(fp.x-d/2+1.5,fp.y-d/2+2,d,d);
+      ctx.drawImage(oilImg,fp.x-d/2,fp.y-d/2,d,d);
+      ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=1;ctx.strokeRect(fp.x-d/2,fp.y-d/2,d,d);
+    } else {
+      ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.arc(fp.x+1.5,fp.y+2,r,0,7);ctx.fill();
+      ctx.fillStyle='#f2a03d';ctx.beginPath();ctx.arc(fp.x,fp.y,r,0,7);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.arc(fp.x-r*.35,fp.y-r*.35,r*.28,0,7);ctx.fill();}}
+  // pipe body (plum, connected)
+  for(let i=snake.length-1;i>=1;i--){const c=cellPx(snake[i]);
+    ctx.fillStyle=i%2?'#5f4c57':'#54424c';
+    roundRect(c.x-CELL*0.42,c.y-CELL*0.42,CELL*0.84,CELL*0.84,4);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.06)';roundRect(c.x-CELL*0.42,c.y-CELL*0.42,CELL*0.84,3,2);ctx.fill();}
+  // head = a Bot
+  if(snake&&snake.length){const hc=cellPx(snake[0]);
+    ctx.save();ctx.translate(hc.x,hc.y);
+    const ang=Math.atan2(dir.y,dir.x);ctx.rotate(ang);
+    const s=CELL*0.94;
+    if(botReady){ctx.imageSmoothingEnabled=false;
+      ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(-s/2+2,-s/2+2,s,s);
+      ctx.drawImage(botImg,-s/2,-s/2,s,s);
+      ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=1.5;ctx.strokeRect(-s/2,-s/2,s,s);
+    } else {const r=s/2;
+      ctx.fillStyle='#f5f0a0';ctx.fillRect(-r,-r,s,s);
+      ctx.fillStyle='#3e323a';ctx.fillRect(-4,-r-3,8,4);ctx.fillRect(2,-5,5,5);
+      ctx.fillStyle='#f2a03d';ctx.fillRect(3,-4,3,3);
+      ctx.strokeStyle='rgba(62,50,58,.4)';ctx.lineWidth=1.5;ctx.strokeRect(-r,-r,s,s);}
+    ctx.restore();}
+  // particles
+  for(const pt of particles){ctx.globalAlpha=Math.max(pt.life/pt.max,0);ctx.fillStyle=pt.color;ctx.fillRect(pt.x-pt.size/2,pt.y-pt.size/2,pt.size,pt.size);}ctx.globalAlpha=1;
+  // HUD score + progress to earn threshold
+  if(state!=='ready'){ctx.fillStyle='#fff';ctx.font='34px "Jersey 15",sans-serif';ctx.textAlign='center';
+    ctx.shadowColor='rgba(0,0,0,.4)';ctx.shadowBlur=8;ctx.fillText(score,W/2,BY0-6);ctx.shadowBlur=0;
+    const need=PARAMS.threshold;ctx.font='12px "Plus Jakarta Sans",sans-serif';
+    ctx.fillStyle=score>=need?'#ffe9c2':'rgba(255,255,255,.75)';
+    ctx.fillText(score>=need?'✓ '+CFG.REWARD_OIL+' OIL earned — keep going':(need-score)+' more pipes to earn '+CFG.REWARD_OIL+' OIL',W/2,H-8);}
+  if(state==='ready'){ctx.fillStyle='rgba(255,255,255,.95)';ctx.textAlign='center';
+    ctx.font='22px "Jersey 15",sans-serif';ctx.fillText('SWIPE OR TAP ▲ TO START',W/2,H*.5-6);
+    ctx.font='13px "Plus Jakarta Sans",sans-serif';ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillText('free — no wallet needed',W/2,H*.5+20);}
+  if(flash>0){ctx.fillStyle='rgba(255,255,255,'+(flash*.5)+')';ctx.fillRect(-20,-20,W+40,H+40);flash*=.82;if(flash<.03)flash=0;}
+  ctx.restore();
+}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+let last=nowMs();
+function frame(now){let dt=now-last;last=now;if(dt>250)dt=250;
+  stepGame(G, dt);                           /* the gates' door is the only door */
+  updP(dt/1000);render();requestAnimationFrame(frame);}
+
+/* ============================================================
+   4. EARN FLOW  — free play → qualify → bank (one signed claim).
+   ============================================================ */
+function syncAction(){ /* D-pad is always live; nothing to toggle */ }
+
+function showGameOver(){
+  if(HEADLESS||!G) return;
+  const score=G.score;
+  const qualified=score>=PARAMS.threshold;
+  const ov=document.getElementById('overOverlay');
+  const card=document.getElementById('overCard');
+  card.className = 'card' + (qualified?' win':'');
+  /* #oScore holds the number ALONE — the shared stickiness layer parses its
+     textContent, so any prose in here would be read as part of the score. */
+  document.getElementById('oScore').textContent = score;
+  document.getElementById('ovPrize').textContent = qualified
+    ? `\u2713 you earned ${CFG.REWARD_OIL} OIL`
+    : `${PARAMS.threshold-score} more pipes to earn ${CFG.REWARD_OIL} OIL`;
+  document.getElementById('ovPending').hidden = !qualified;
+  const terms=document.getElementById('ovTerms');
+  terms.hidden = !qualified;
+  terms.innerHTML = qualified ? `
+      <li>Banking signs one transaction: ${CFG.CLAIM_SOL} SOL + a memo, to the game's faucet wallet.</li>
+      <li>That tiny SOL keeps free accounts from farming it. You'll need a little SOL in your wallet.</li>
+      <li>Up to ${CFG.DAILY_CAP_OIL} OIL a day across all earn games. Spend it in Pick-a-Bot or Spot-a-FinnBot.</li>` : '';
+  const bankBtn=document.getElementById('bankBtn');
+  bankBtn.hidden = !qualified;
+  bankBtn.textContent = `Bank ${CFG.REWARD_OIL} OIL`;
+  bankBtn.onclick = qualified ? bank : null;
+  document.getElementById('retryBtn').onclick = closeModalAndReset;
+  ov.classList.add('show');     // the class the shared stickiness layer watches
+}
+
+async function bank(){
+  const btn=document.getElementById('bankBtn'); if(!btn)return;
+  const len=G.score;
+  try{
+    if(typeof solanaWeb3==='undefined') throw new Error('Wallet library didn\u2019t load — open pipe.finnstergram.com in your own browser (not the chat preview).');
+    // Need a connected wallet to sign. Desktop can connect inline; mobile
+    // connect redirects (and would wipe this run), so ask them to Connect first.
+    if(!hasWallet()){
+      const provider=getProvider();
+      if(provider){ try{ const r=await provider.connect(); wallet.pubkey=r.publicKey.toString(); onConnected(); }
+        catch(e){ return setBankError(btn,'Connection cancelled.'); } }
+      else { return setBankError(btn,'Tap Connect at the top first, then bank this run.'); }
+    }
+    btn.disabled=true; btn.textContent='Building…';
+    const ownerPk=new solanaWeb3.PublicKey(wallet.pubkey);
+    const connection=new solanaWeb3.Connection(CFG.RPC,'confirmed');
+    const bal=await connection.getBalance(ownerPk);
+    if(bal < CFG.CLAIM_LAMPORTS + 5000)
+      throw new Error('You need a little SOL in this wallet to bank ('+CFG.CLAIM_SOL+' SOL + a small fee).');
+    const tx=await buildClaimTx(ownerPk, len, connection);
+
+    const provider=getProvider();
+    const useMobile=!provider && window.PhantomMobile && PhantomMobile.isMobile() && PhantomMobile.hasSession();
+    if(!provider && !useMobile) throw new Error('Phantom isn\u2019t reachable — tap Connect again.');
+
+    if(useMobile){
+      // Page navigates away to Phantom. Phantom returns in a NEW tab, so
+      // everything needed to finish travels in the return URL (len, owner).
+      btn.textContent='Opening Phantom…';
+      const unsigned=tx.serialize({ requireAllSignatures:false, verifySignatures:false });
+      const returnUrl=location.origin+location.pathname+'?len='+len+'&owner='+encodeURIComponent(wallet.pubkey);
+      PhantomMobile.signTransaction(unsigned, returnUrl, 'pipe_claim');
+      return; // navigating away
+    }
+
+    // Desktop: Phantom signs, WE submit through CFG.RPC.
+    btn.textContent='Approve in Phantom…';
+    const signed=await provider.signTransaction(tx);
+    btn.textContent='Sending…';
+    const rawSig=await connection.sendRawTransaction(signed.serialize(), { skipPreflight:false });
+    const ok=await confirmSignature(connection, rawSig, 30000);
+    if(!ok) throw new Error('Claim sent but confirmation is slow. Signature: '+rawSig+' — do NOT bank again, check it first.');
+    showBanked(rawSig);
+  }catch(e){
+    setBankError(btn, e.message || 'Something went wrong. Nothing was banked unless a claim confirmed.');
+  }
+}
+
+// Completes a claim after returning from Phantom's mobile app with signed bytes.
+async function resumeClaimAfterSign(txBytes, len){
+  const m=document.getElementById('modal');
+  m.innerHTML='<div class="card win" role="dialog" aria-modal="true"><h3>Banking…</h3><p>Sending your claim to the chain…</p></div>';
+  try{
+    if(typeof solanaWeb3==='undefined') throw new Error('Wallet library didn\u2019t load.');
+    const connection=new solanaWeb3.Connection(CFG.RPC,'confirmed');
+    const rawSig=await connection.sendRawTransaction(txBytes, { skipPreflight:false });
+    const ok=await confirmSignature(connection, rawSig, 30000);
+    if(!ok) throw new Error('Claim sent but confirmation is slow. Signature: '+rawSig+' — do NOT bank again, check it first.');
+    showBanked(rawSig);
+  }catch(e){
+    m.innerHTML='<div class="card" role="dialog" aria-modal="true"><h3>Hmm</h3>'+
+      '<p style="color:#c0392b;font-weight:600;">'+(e.message||'Could not finish the claim.')+'</p>'+
+      '<button class="btn ghost" id="pa">Play again</button></div>';
+    m.querySelector('#pa').onclick=closeModalAndReset;
+  }
+}
+
+function showBanked(sig){
+  blip('earn');
+  const m=document.getElementById('modal');
+  m.innerHTML=`<div class="card win" role="dialog" aria-modal="true">
+    <h3>Banked ✓</h3>
+    <div class="prize">${CFG.REWARD_OIL} OIL queued</div>
+    <div class="pending">Arrives with the next weekly $OIL batch — not instant.${TEST_MODE?' (TEST MODE — local validator.)':''}</div>
+    <p style="font-size:11px;color:var(--muted);word-break:break-all;">claim: ${sig}</p>
+    <button class="btn" id="c1">New Bot? Grab one on Magic Eden</button>
+    <button class="btn ghost" id="c2">Play again</button>
+  </div>`;
+  m.querySelector('#c1').onclick=()=>window.open('https://magiceden.io/marketplace/finnbot','_blank');
+  m.querySelector('#c2').onclick=closeModalAndReset;
+}
+function setBankError(btn, msg){
+  btn.disabled=false; btn.textContent='Bank '+CFG.REWARD_OIL+' OIL';
+  const card=btn.closest('.card'); if(!card) return;
+  let e=card.querySelector('.bankerr');
+  if(!e){ e=document.createElement('p'); e.className='bankerr';
+    e.style.cssText='color:#c0392b;font-size:12px;font-weight:600;margin-bottom:8px;'; card.insertBefore(e,btn); }
+  e.textContent=msg;
+}
+function closeModalAndReset(){document.getElementById('modal').innerHTML='';document.getElementById('overOverlay').classList.remove('show');reset();}
+
+/* ---- THE DOM HALF — wiring, not sim. None of it exists headless. ------- */
+if(!HEADLESS){
+document.getElementById('connectBtn').onclick=doConnect;
+document.getElementById('infoBtn').onclick=()=>{
+  const m=document.getElementById('modal');
+  m.innerHTML=`<div class="card" role="dialog" aria-modal="true">
+    <h3>How Pipeline works</h3>
+    <p><b>Play free.</b> No wallet, no Bot, no $OIL needed. Steer the Bot to connect oil-drum pipe segments — don't hit a wall or your own pipe.</p>
+    <p><b>Earn by connecting ${PARAMS.threshold} pipes.</b> Do that and you can bank <b>${CFG.REWARD_OIL} OIL</b> — a small amount of in-game currency, not income.</p>
+    <p><b>Banking signs one transaction:</b> ${CFG.CLAIM_SOL} SOL + a memo, sent to the game's faucet wallet. We never ask for your seed phrase or to move your Bots or tokens.</p>
+    <p><b>Paid weekly.</b> Earned OIL arrives with the next batch, then spend it in Pick-a-Bot or Spot-a-FinnBot. Up to ${CFG.DAILY_CAP_OIL} OIL a day across all earn games.</p>
+    <button class="btn" id="ic">Got it</button>
+  </div>`;
+  m.querySelector('#ic').onclick=()=>m.innerHTML='';
+};
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')e.target.innerHTML='';});
+
+/* input — D-pad, keyboard, swipe. Every one of them raises a FLAG; the sim
+   reads the flags on its own tick (see press/stepGame). */
+document.getElementById('dUp').onclick   =()=>press(0,-1);
+document.getElementById('dDown').onclick =()=>press(0,1);
+document.getElementById('dLeft').onclick =()=>press(-1,0);
+document.getElementById('dRight').onclick=()=>press(1,0);
+window.addEventListener('keydown',e=>{
+  const k=e.key;
+  if(k==='ArrowUp'||k==='w'||k==='W'){e.preventDefault();press(0,-1);}
+  else if(k==='ArrowDown'||k==='s'||k==='S'){e.preventDefault();press(0,1);}
+  else if(k==='ArrowLeft'||k==='a'||k==='A'){e.preventDefault();press(-1,0);}
+  else if(k==='ArrowRight'||k==='d'||k==='D'){e.preventDefault();press(1,0);}
+});
+const stage=document.querySelector('.surface');
+let tsx=0,tsy=0;
+stage.addEventListener('touchstart',e=>{const t=e.changedTouches[0];tsx=t.clientX;tsy=t.clientY;},{passive:true});
+stage.addEventListener('touchend',e=>{const t=e.changedTouches[0];const dx=t.clientX-tsx,dy=t.clientY-tsy;
+  if(Math.abs(dx)<12&&Math.abs(dy)<12){ if(G&&G.mode==='ready') press(G.dir.x,G.dir.y); return; }
+  if(Math.abs(dx)>Math.abs(dy)) press(dx>0?1:-1,0); else press(0,dy>0?1:-1);},{passive:true});
+
+/* go */
+if(TEST_MODE===false) document.getElementById('testbar').classList.add('hide');
+if(window.PhantomMobile) resumePhantomState();   // catch Phantom redirect returns / restore session
+requestAnimationFrame(()=>{resize();reset();requestAnimationFrame(frame);});
+}  /* end DOM half */
+
+/* The contract the gates drive. newRun() hands back a run already PLAYING:
+   headless there is no tap to wait for, and a run that never starts is a
+   termination sim that never ends. */
+if(HEADLESS) module.exports={ CFG, PARAMS, newRun, stepGame };
+</script>
+<script>/* Auto-open the How-To as an intro on first load (skip Phantom redirect returns). */
+try{var _bpIntro=new URLSearchParams(location.search);if(!_bpIntro.get('phantom_action')&&_bpIntro.get('src')!=='browse'){addEventListener('load',function(){var b=document.getElementById('infoBtn');if(b)b.click();});}}catch(e){}</script>
+<script id="fb-sticky">
+/* ==========================================================================
+   FinnBots STICKINESS LAYER — the reason a player takes one more run.
+   Founder rule, 2026-09-25: "provide a UI/UX that will support stickiness
+   with players."
+
+   SOURCE OF TRUTH. Injected by apply-device.js as <script id="fb-sticky">
+   just before </body>. It is deliberately tiny and entirely passive:
+
+     - it NEVER touches the engine, the wallet layer, the network or a wallet
+     - it reads the score the game ALREADY prints into #oScore
+     - it stores one number per game in localStorage, and nothing else
+
+   What it adds, and why each one earns its place:
+     1. A personal best you can always see.  A score with nothing to beat is a
+        number; a score next to your best is a challenge.
+     2. A run-over line that says exactly how close you came ("1,240 short" /
+        "NEW BEST +900").  The gap is what makes the next run feel winnable.
+     3. A session run counter, so a streak is visible while it is happening.
+     4. Enter / Space / Return restarts from the run-over card.  The single
+        biggest drop-off in an arcade loop is the pause between runs — the
+        fastest possible replay is the strongest retention feature there is.
+   ========================================================================== */
+(function(){
+  try{
+    var NS = 'fb:' + (location.hostname.split('.')[0] || 'game') + ':';
+    var $  = function(id){ return document.getElementById(id); };
+    var read = function(k,d){ try{ var v=localStorage.getItem(NS+k); return v==null?d:(JSON.parse(v)); }catch(e){ return d; } };
+    var save = function(k,v){ try{ localStorage.setItem(NS+k, JSON.stringify(v)); }catch(e){} };
+    var fmt  = function(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
+    var num  = function(t){ var n=parseInt(String(t||'').replace(/[^0-9]/g,''),10); return isFinite(n)?n:0; };
+
+    var best = num(read('best', 0)), runs = 0;
+
+    /* ---- 1. the chip, in the topbar beside the title ---- */
+    var chip = document.createElement('span');
+    chip.className = 'fb-best';
+    function paintChip(isNew){
+      chip.innerHTML = '<i>BEST</i> <b>' + fmt(best) + '</b>';
+      chip.classList.toggle('is-new', !!isNew);
+      chip.hidden = !best;
+    }
+    paintChip(false);
+    var title = document.querySelector('.topbar .title, .topbar h1, header .title');
+    if(title && title.parentNode) title.parentNode.insertBefore(chip, title.nextSibling);
+
+    /* ---- 2. the run-over line ---- */
+    var over = $('overOverlay'), card = $('overCard'), scoreEl = $('oScore');
+    if(!over || !card || !scoreEl) return;       // not a chassis run-over card: do nothing
+    var line = document.createElement('p');
+    line.className = 'fb-runline';
+    var retry = $('retryBtn');
+    if(retry && retry.parentNode) retry.parentNode.insertBefore(line, retry);
+    else card.appendChild(line);
+
+    var shown = false;
+    function onShow(){
+      var score = num(scoreEl.textContent);
+      runs++;
+      var isNew = score > best, gap = best - score;
+      if(isNew){
+        var by = score - best;
+        best = score; save('best', best);
+        line.innerHTML = '<span class="go">NEW BEST · +' + fmt(by) + '</span>' +
+                         '<small>run ' + runs + ' this session</small>';
+      } else if(best > 0){
+        line.innerHTML = '<span class="gap">' + fmt(gap) + ' short of your best</span>' +
+                         '<small>best ' + fmt(best) + ' · run ' + runs + ' this session</small>';
+      } else {
+        best = score; save('best', best);
+        line.innerHTML = '<span class="go">First run banked</span>' +
+                         '<small>beat ' + fmt(best) + ' next time</small>';
+      }
+      paintChip(isNew);
+    }
+
+    new MutationObserver(function(){
+      var on = over.classList.contains('show');
+      if(on && !shown){ shown = true; onShow(); }
+      else if(!on){ shown = false; }
+    }).observe(over, { attributes:true, attributeFilter:['class'] });
+
+    /* ---- 3. one-key replay, and the focus trap it exposed ------------------
+       Closing a dialog returns focus to the button that opened it — correct
+       accessibility, and the chassis does it. But a focused <button> then eats
+       ENTER and SPACE, so mid-game those keys re-open HOW TO PLAY instead of
+       playing: Space IS the fire key in several games, and this layer had just
+       taught players to press Enter between runs, which made a latent bug easy
+       to hit (Founder, 2026-09-25, seen on a round clear).
+
+       So: Enter/Space replay when the run-over card is up; they are left alone
+       while ANY other dialog is open, because its buttons must still work; and
+       otherwise the focused control is blurred and the key swallowed, so game
+       keys can never operate the chrome. Capture phase, because this has to run
+       before the button's own activation. */
+    var anyDialog = function(){ return !!document.querySelector('.overlay.show, .sheet.show'); };
+    addEventListener('keydown', function(e){
+      if(e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+      if(over.classList.contains('show')){
+        e.preventDefault();
+        if(retry) retry.click();
+        return;
+      }
+      if(anyDialog()) return;                       // another dialog owns the keyboard
+      var a = document.activeElement;
+      if(a && a !== document.body && /^(BUTTON|A|SUMMARY)$/.test(a.tagName)){
+        a.blur();
+        e.preventDefault();
+      }
+    }, true);
+  }catch(e){ /* stickiness must never break a game */ }
+})();
+</script>
+<script id="fb-outro">
+/* ==========================================================================
+   FinnBots OUTRO LAYER — the ending screen.
+   Founder, 2026-10-02, verbatim: "there need to be a cool ending screen to
+   games not just they end or game over".
+
+   SOURCE OF TRUTH. Injected by apply-outro.js as <script id="fb-outro">
+   just before </body>, which is AFTER the engine and after the stickiness and
+   seed layers, so everything it decorates already exists when it binds.
+
+   WHAT WAS WRONG. The chassis run-over card is a receipt: "RUN OVER", a score,
+   a time, a retry button — the same card whether the player cleared the final
+   round or walked into the first enemy. The number arrives instantly, which
+   makes it information rather than a reward, and it sits beside nothing, so a
+   great run and a terrible one feel identical. An arcade ending has four beats
+   and we shipped none of them.
+
+   THE FOUR BEATS, and why each one earns its place:
+
+     1. VERDICT — winning must not look like dying. A cleared game gets a
+        different kicker, a lit hero and a flourish; a loss gets a warm,
+        non-punitive close. Free players are children (Founder, 2026-09-30):
+        losing is never made to sting, and nothing here sells anything.
+
+     2. TALLY — the score COUNTS UP, and the per-game stats the card already
+        prints become itemised rows that ratchet in above it. The count-up is
+        the oldest reward animation in the arcade and the single biggest thing
+        this card was missing. It is always skippable with a tap or a key: a
+        ceremony you cannot cut short is a toll, not a reward.
+
+     3. RANK — where does this run actually stand? The board CSV the scanner
+        publishes is served from the same origin as the game, so the ending can
+        read it and say "that would place you 7th today", with a rank title
+        earned against the REAL distribution rather than hand-set thresholds
+        that would mean something different in every game. 25 OIL buys a
+        leaderboard spot; this is where the purchase is finally delivered. Free
+        players see the same thing for nothing — the paid layer's output
+        flowing back to them as content, per MONETISATION-BRIEF.md.
+
+     4. HOOK — the stickiness layer's "1,240 short of your best" line and its
+        one-key replay stay exactly where they are. This layer frames them.
+
+   HOW IT IS BUILT, and the traps that shaped it:
+
+     - ADDITIVE AND PASSIVE. It never touches the engine, the wallet layer, the
+       network beyond the one same-origin CSV, or a wallet. It reads the DOM the
+       game already wrote.
+     - IT NEVER RETYPES THE CARD'S OWN NUMBERS. #oScore keeps its final text,
+       because the stickiness layer, the score memo and two gates read it. We
+       hide the plain readout with a clip rect and draw our own beside it.
+     - IT FIRES ON A RUN END, NEVER ON A START SCREEN. Bot Pong and Bot Merge
+       reuse #overOverlay/#overCard as their START card, so "the overlay became
+       visible" is not "the run ended". The guard is structural, not a list of
+       game names: a card that holds a visible control whose id starts with
+       "start", or whose score element is hidden by attribute, is a start card
+       and is left alone. Those two games therefore get NO ending screen from
+       this layer, which verify-outro.js reports per game as a named gap rather
+       than passing in silence.
+     - VISIBILITY IS DECIDED WITHOUT LAYOUT. Games reveal the overlay three
+       different ways (.show added, .hidden removed, both), so the check is
+       mechanism-agnostic and layout-free, which also lets a gate drive it
+       headlessly.
+     - IT MUST NEVER BREAK A GAME. Everything is inside one try/catch, every
+       animation degrades to its final state under prefers-reduced-motion, and
+       a missing hero image, a missing board or a failed fetch each remove one
+       beat and leave the rest.
+   ========================================================================== */
+(function(){
+  try{
+    var $ = function(id){ return document.getElementById(id); };
+    var overlay = $('overOverlay'), card = $('overCard'), scoreEl = $('oScore');
+    /* HARD dependencies. check-layers.js reads this guard to learn which ids
+       the layer cannot run without, and then checks them in the STATIC markup
+       of every game that carries the layer — so a game where this returns is a
+       FAILED gate, not a quiet no-op. [[installed-is-not-working]] */
+    if(!overlay || !card || !scoreEl) return;
+
+    var titleEl = $('overTitle');
+    var SCRIPT  = document.getElementById('fb-outro');
+    var BOARD   = (SCRIPT && SCRIPT.getAttribute('data-fb-board')) || '';
+    var reduced = false;
+    try{ reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){}
+
+    var fmt = function(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
+    var num = function(t){ var n = parseInt(String(t==null?'':t).replace(/[^0-9-]/g,''),10); return isFinite(n)?n:0; };
+    var has = function(el,c){ return !!(el && el.classList && el.classList.contains(c)); };
+    var attrHidden = function(el){
+      if(!el) return true;
+      if(el.hidden === true) return true;
+      if(el.getAttribute && el.getAttribute('hidden') !== null && el.getAttribute('hidden') !== undefined) return true;
+      return false;
+    };
+
+    /* ---- is the overlay on screen? ------------------------------------
+       Three conventions are in service (.show added, .hidden removed, both),
+       so decide by state rather than by mechanism, and never by layout: a
+       layout-based answer cannot be driven by a gate and is wrong anyway while
+       the overlay is mid-transition. */
+    function visible(el){
+      if(attrHidden(el)) return false;
+      if(has(el,'hidden')) return false;
+      if(has(el,'show')) return true;
+      if(el.style && el.style.display === 'none') return false;
+      /* no class convention on this game: fall back to layout where there is a
+         browser to ask, and to "not on screen" where there is not. */
+      return (typeof el.offsetParent !== 'undefined') ? el.offsetParent !== null : false;
+    }
+
+    /* ---- is this card a START card rather than a run end? --------------
+       Structural, not a list of game names. */
+    function isStartCard(){
+      if(attrHidden(scoreEl)) return true;                 // card is not presenting a score
+      var kids = card.querySelectorAll ? card.querySelectorAll('[id]') : [];
+      for(var i=0;i<kids.length;i++){
+        var id = kids[i].id || '';
+        if(/^start/i.test(id) && !attrHidden(kids[i])) return true;
+      }
+      return false;
+    }
+
+    /* ---- did the player WIN? -------------------------------------------
+       In order of authority: an explicit declaration from the engine, the
+       chassis's own .win class on the card, then the title the game wrote.
+       The vocabulary is OUR words (clear / complete / vault / champion); it
+       never names another game. */
+    function won(){
+      try{ if(window.FB_OUTRO && typeof window.FB_OUTRO.won === 'boolean') return window.FB_OUTRO.won; }catch(e){}
+      if(has(card,'win')) return true;
+      var t = (titleEl && titleEl.textContent || '').toUpperCase();
+      return /\b(CLEAR|CLEARED|COMPLETE|COMPLETED|WIN|WON|VAULT|CHAMPION|PERFECT)\b/.test(t);
+    }
+
+    /* ---- the tally rows ------------------------------------------------
+       Harvested from the stat line the card ALREADY prints, so every game gets
+       its own itemisation with no per-game code: BotFord's "Cave 7 · Beads 148
+       · Time 1:32" becomes three rows, and a game that only prints a time gets
+       one. Two shapes exist in the roster:
+         <p>Cave <b>7</b> · Beads <b>148</b></p>   label before each <b>
+         <p><b>Bay 1 · 0 kills</b></p>             one <b>, labels inside
+       The second is split on the separator and each piece read as
+       "<value> <label>". */
+    function harvest(){
+      var rows = [], ps = card.querySelectorAll ? card.querySelectorAll('p') : [];
+      for(var i=0;i<ps.length;i++){
+        var p = ps[i];
+        if(has(p,'fb-runline')) continue;                  // the stickiness line, not a stat
+        var bs = p.querySelectorAll ? p.querySelectorAll('b') : [];
+        if(!bs.length) continue;
+        var labelled = 0, out = [];
+        for(var j=0;j<bs.length;j++){
+          var b = bs[j], val = (b.textContent||'').trim();
+          if(!val) continue;
+          /* the text immediately before this <b> inside the <p> is its label */
+          var lab = '';
+          var prev = b.previousSibling;
+          while(prev && !lab){
+            if(prev.nodeType === 3) lab = (prev.textContent||'').trim();
+            prev = prev.previousSibling;
+          }
+          lab = lab.replace(/^[·•|,\s]+/,'').replace(/[:·•|,\s]+$/,'');
+          if(lab){ labelled++; out.push([lab, val]); }
+          else {
+            /* no label outside: the <b> carries "Bay 1 · 0 kills" itself */
+            var parts = val.split(/\s*[·•|]\s*/);
+            for(var k=0;k<parts.length;k++){
+              var piece = parts[k].trim(); if(!piece) continue;
+              var m = /^([0-9][0-9,.:]*)\s+(.+)$/.exec(piece) || /^(.+?)\s+([0-9][0-9,.:]*)$/.exec(piece);
+              if(m && /^[0-9]/.test(m[1])) out.push([m[2], m[1]]);
+              else if(m) out.push([m[1], m[2]]);
+              else out.push(['', piece]);
+            }
+          }
+        }
+        if(out.length){ rows = rows.concat(out); p.classList.add('fb-outro-src'); }
+      }
+      return rows;
+    }
+
+    /* ---- the rank the run earned ---------------------------------------
+       This is the beat the whole screen exists for, and it has to say
+       something TRUE in four different worlds — the first version only worked
+       in one of them.
+
+       Measured on the roster the day this layer was written: of eighteen
+       published boards, sixteen were HEADER ONLY and two held a single row.
+       The scanner only began recording rows at all on 2026-10-02
+       ([[the-score-never-reached-the-board]]), so "where do I rank" had no
+       answer on essentially every game, and the first draft of this layer
+       rendered that as a missing panel — a dead beat that looks exactly like a
+       broken one. That is the mistake this factory keeps paying for, so:
+
+         board with 5+ entries  the world placement and a percentile band.
+                                Calibrated per game by the real distribution,
+                                so no threshold is hand-set.
+         board with 1-4         the placement is real and the percentile is
+                                noise, so the placement is shown and the title
+                                comes from the player's OWN ladder.
+         board served, empty    say so plainly, and rank against your own runs.
+                                Stated as a fact, never as a prompt to spend:
+                                free players are children (MONETISATION-BRIEF).
+         no board served        the personal ladder alone.
+
+       The personal ladder is this layer's own small store (the last ten runs,
+       one key, localStorage) — never the stickiness layer's, so neither layer
+       can break the other. A free player with no wallet therefore always has a
+       real ranking to beat, which is the paid layer's content flowing back to
+       them for nothing. */
+    var BANDS = [
+      [0.00, 'FACTORY CHAMPION'],
+      [0.03, 'FACTORY LEGEND'],
+      [0.10, 'TURBO UNIT'],
+      [0.25, 'CHROME BOT'],
+      [0.50, 'BOLT HUNTER'],
+      [1.01, 'SCRAP RUNNER']
+    ];
+    function bandFor(frac){
+      for(var i=0;i<BANDS.length;i++) if(frac <= BANDS[i][0]) return BANDS[i][1];
+      return BANDS[BANDS.length-1][1];
+    }
+    var ord = function(n){
+      return n + (n%10===1&&n%100!==11?'st':n%10===2&&n%100!==12?'nd':n%10===3&&n%100!==13?'rd':'th');
+    };
+
+    /* this layer's own run history */
+    var HKEY = 'fb:' + ((location.hostname||'game').split('.')[0] || 'game') + ':outro:runs';
+    function loadRuns(){
+      try{ var v = JSON.parse(localStorage.getItem(HKEY) || '[]');
+           return (v instanceof Array ? v : []).filter(function(n){ return typeof n === 'number' && isFinite(n); })
+                                               .sort(function(a,b){ return b-a; }); }
+      catch(e){ return []; }
+    }
+    function saveRun(n){
+      try{ var v = loadRuns(); v.push(n); v.sort(function(a,b){ return b-a; });
+           localStorage.setItem(HKEY, JSON.stringify(v.slice(0,10))); }catch(e){}
+    }
+    /* the player's own ladder: title, a note, and how full the bar sits */
+    function personal(score, prior){
+      /* STANDARD COMPETITION RANKING: a place is one plus the number of runs
+         STRICTLY BETTER than this one, so equal scores share a rank. The first
+         version counted every run that this one did not beat, which made a
+         score EQUAL to your best read "2ND BEST RUN" — correct-looking on a
+         game whose scores are all different, and wrong on every game where
+         scores tie or cap. Bot Pong is first to 11: every single win ties at
+         11, so a perfect 11-0 would have been filed as your second-best run,
+         for ever. The world placement below deliberately does NOT do this —
+         tying someone already on the board leaves you behind them, because
+         they got there first. */
+      var better = 0;
+      for(var i=0;i<prior.length;i++) if(prior[i] > score) better++;
+      var place = better + 1;
+      var best = prior.length ? prior[0] : 0;
+      if(!prior.length) return { title:'ROOKIE BOT', note:'First run banked. Everything from here beats it.', frac: 0.5 };
+      if(place === 1){
+        return score > best
+          ? { title:'PERSONAL BEST', note:'Your best run yet — the old one was <b>' + fmt(best) + '</b>.', frac: 1 }
+          : { title:'MATCHED YOUR BEST', note:'Level with your best of <b>' + fmt(best) + '</b>.', frac: 1 };
+      }
+      return { title: ord(place).toUpperCase() + ' BEST RUN',
+               note: 'Your best is <b>' + fmt(best) + '</b> — <b>' + fmt(best - score) + '</b> to go.',
+               frac: best > 0 ? Math.max(0.04, score / best) : 0.5 };
+    }
+
+    /* parse the scanner's CSV. Its schema varies per game by design (BotFord
+       has `beads`, BubbleBot has `pops`), so read the HEADER and take the score
+       column by name — never by position. An empty board is a real, different
+       answer from an unreadable one, so this returns [] and null respectively. */
+    function scoresFrom(text){
+      var lines = String(text||'').trim().split(/\r?\n/);
+      if(!lines.length || !lines[0]) return null;
+      var head = lines[0].split(',').map(function(s){ return s.trim(); });
+      var col = head.indexOf('score_adjusted');
+      if(col < 0) col = head.indexOf('score_raw');
+      if(col < 0) col = head.indexOf('score');
+      if(col < 0) return null;                       // not a board we understand
+      var out = [];
+      for(var i=1;i<lines.length;i++){
+        var cells = lines[i].split(',');
+        if(cells.length <= col) continue;
+        var v = parseInt(String(cells[col]).replace(/[^0-9-]/g,''),10);
+        if(isFinite(v)) out.push(v);
+      }
+      return out.sort(function(a,b){ return b-a; }); // [] = a board with nobody on it
+    }
+
+    /* ---- build the block once, refill it on every run end --------------- */
+    var box = document.createElement('div');
+    box.className = 'fb-outro';
+    box.innerHTML =
+      '<span class="fb-outro-kicker"></span>' +
+      '<img class="fb-outro-hero" alt="" aria-hidden="true" hidden />' +
+      '<ul class="fb-outro-tally"></ul>' +
+      '<div class="fb-outro-total"><i>Final score</i><b>0</b></div>' +
+      '<div class="fb-outro-rank" hidden>' +
+        '<div class="fb-outro-title"><span></span><em></em></div>' +
+        '<div class="fb-outro-bar"><span></span></div>' +
+        '<small class="fb-outro-note"></small>' +
+      '</div>' +
+      '<span class="fb-outro-skip">tap to skip</span>';
+    var q = function(sel){ return box.querySelector(sel); };
+
+    /* Insert ABOVE the stickiness run-line and the buttons, BELOW the title and
+       the (now hidden) plain score — so the card reads top to bottom as
+       verdict, tally, rank, personal best, replay.
+
+       The anchor has to be walked UP to a direct child of the card first. The
+       first version compared `anchor.parentNode === card` and gave up when it
+       was not, which on every game with a .btnrow (BotFord, BOTRUN) is always:
+       the stickiness layer inserts its run-line before #retryBtn, so the line
+       lives INSIDE the button row. The whole ending screen then appended after
+       the buttons and the card read title, best, REPLAY BUTTON, tally, score.
+       It took a screenshot to see it, because order is the one property a
+       DOM-only gate had not been asked for — verify-outro now asserts it. */
+    function place(){
+      var up = function(node){
+        while(node && node.parentNode && node.parentNode !== card) node = node.parentNode;
+        return (node && node.parentNode === card) ? node : null;
+      };
+      /* Directly UNDER THE TITLE, so the card always reads verdict → tally →
+         rank → personal best → replay. Anchoring on the buttons instead put
+         the whole ending screen BELOW anything else the card happened to
+         carry: on Bot Merge the initials box and the device high-score list
+         sat between the title and the tally and broke the ending in half. The
+         chassis's own `.big` and stat line are hidden by this layer, so
+         landing above them changes nothing on the other games. */
+      var title = up(document.getElementById('overTitle')) || up(card.querySelector('h1,h2'));
+      if(title && title.nextSibling) card.insertBefore(box, title.nextSibling);
+      else if(title) card.appendChild(box);
+      else {
+        var anchor = up(card.querySelector('.fb-runline')) ||
+                     up(card.querySelector('.btnrow')) ||
+                     up(document.getElementById('retryBtn')) ||
+                     up(card.querySelector('button'));
+        if(anchor) card.insertBefore(box, anchor);
+        else card.appendChild(box);
+      }
+    }
+    place();
+
+    var hero = q('.fb-outro-hero');
+    /* The hero is the real Bot 106 PNG every game already ships (Founder,
+       2026-09-25). Shown only once the browser confirms it decoded, so a game
+       without the asset simply has no hero rather than a broken image. */
+    try{
+      hero.addEventListener('load', function(){ hero.hidden = false; });
+      hero.addEventListener('error', function(){ hero.hidden = true; });
+      hero.src = 'assets/hero/bot-106.png';
+    }catch(e){}
+
+    /* ---- the count-up ---------------------------------------------------- */
+    var raf = (window.requestAnimationFrame || function(f){ return setTimeout(function(){ f(Date.now()); }, 16); });
+    var timer = null, settle = null, target = 0;
+    function land(){
+      if(timer){ clearTimeout(timer); timer = null; }
+      box.classList.remove('fb-outro-counting');
+      q('.fb-outro-total b').textContent = fmt(target);
+    }
+    function countTo(n){
+      target = n;
+      if(reduced || n <= 0){ land(); return; }
+      box.classList.add('fb-outro-counting');
+      var DUR = Math.min(1400, 420 + Math.log10(Math.max(10,n)) * 220), t0 = Date.now();
+      (function tick(){
+        if(!box.classList.contains('fb-outro-counting')) return;    // skipped
+        var p = Math.min(1, (Date.now() - t0) / DUR);
+        var eased = 1 - Math.pow(1 - p, 3);
+        q('.fb-outro-total b').textContent = fmt(Math.round(n * eased));
+        if(p >= 1){ land(); return; }
+        timer = setTimeout(tick, 32);
+      })();
+    }
+
+    /* ---- the rank beat --------------------------------------------------- */
+    var MODE = '';
+    function paintRank(score){
+      var rank = q('.fb-outro-rank');
+      var prior = loadRuns();                        // BEFORE this run is added
+      saveRun(score);
+      var me = personal(score, prior);
+
+      function paint(title, right, note, frac){
+        rank.hidden = false;
+        q('.fb-outro-title span').textContent = title;
+        q('.fb-outro-title em').textContent = right || '';
+        q('.fb-outro-note').innerHTML = note;
+        var fill = q('.fb-outro-bar span');
+        var pct = Math.max(4, Math.min(100, Math.round(frac * 100)));
+        if(reduced) fill.style.width = pct + '%';
+        else raf(function(){ fill.style.width = pct + '%'; });
+      }
+
+      var done = function(scores){
+        if(scores && scores.length >= 5){
+          var beat = 0;
+          for(var i=0;i<scores.length;i++){ if(score > scores[i]) break; beat++; }
+          var place = beat + 1, total = scores.length + 1, frac = (place - 1) / total;
+          MODE = 'world';
+          paint(bandFor(frac), 'top ' + Math.max(1, Math.round(frac*100)) + '%',
+                place === 1 ? 'That is the <b>best run on the board</b>.'
+                            : 'That run would place <b>' + ord(place) + '</b> of ' + total + ' on the board.',
+                1 - frac);
+        } else if(scores && scores.length){
+          var b2 = 0;
+          for(var j=0;j<scores.length;j++){ if(score > scores[j]) break; b2++; }
+          MODE = 'thin';
+          paint(me.title, '', 'That run would place <b>' + ord(b2 + 1) + '</b> of ' +
+                (scores.length + 1) + ' on the board. ' + me.note, me.frac);
+        } else if(scores){
+          /* a board is published and nobody is on it. Say it plainly: a fact,
+             with no call to action — this screen is seen by children. */
+          MODE = 'empty';
+          paint(me.title, '', 'Nobody has banked a score on this board yet. ' + me.note, me.frac);
+        } else {
+          MODE = 'personal';
+          paint(me.title, '', me.note, me.frac);
+        }
+      };
+
+      if(!BOARD){ done(null); return; }
+      try{
+        fetch(BOARD, { cache:'no-store' })
+          .then(function(r){ return r.ok ? r.text() : null; })
+          .then(function(t){ done(t == null ? null : scoresFrom(t)); })
+          .catch(function(){ done(null); });
+      }catch(e){ done(null); }
+    }
+
+    /* ---- the win flourish ------------------------------------------------ */
+    function sparks(){
+      if(reduced) return;
+      var hold = document.createElement('div');
+      hold.className = 'fb-outro-sparks'; hold.setAttribute('aria-hidden','true');
+      var cols = ['#f2a03d','#ffd9a0','#9be7d0','#fff'];
+      for(var i=0;i<10;i++){
+        var s = document.createElement('i');
+        s.style.left = (4 + i*10 + (i%3)*3) + '%';
+        s.style.background = cols[i % cols.length];
+        s.style.animationDelay = (i * 55) + 'ms';
+        hold.appendChild(s);
+      }
+      card.appendChild(hold);
+      setTimeout(function(){ try{ hold.remove ? hold.remove() : hold.parentNode.removeChild(hold); }catch(e){} }, 2200);
+    }
+
+    /* ---- run it ----------------------------------------------------------- */
+    function show(){
+      /* THE CARD MAY HAVE BEEN REBUILT. BOTRUN composes its run-over card at
+         run end with `overCard.innerHTML = '<h2 id="overTitle">TIME UP</h2>…'`
+         and THEN reveals it, which destroys this layer's block and leaves the
+         nodes we cached pointing at detached elements. The Founder's screenshot
+         was the result: a bare "TIME UP" and a retry button, with no score at
+         all — because our tally was gone AND our CSS was still hiding the
+         card's own `.big` readout. Worse than before the layer existed.
+         So: re-resolve what we read, and re-attach before we render. */
+      scoreEl = $('oScore')    || scoreEl;
+      titleEl = $('overTitle') || titleEl;
+      if(box.parentNode !== card) place();
+
+      var score = num(scoreEl.textContent), win = won();
+      /* and only now may the card's own score be hidden — this class is
+         exactly "make broken look different from working", so the layer must
+         never suppress what the game already shows unless its replacement is
+         really on screen. */
+      if(box.parentNode === card) document.body.classList.add('fb-outro-on');
+      box.classList.remove('fb-outro-win','fb-outro-end');
+      box.classList.add(win ? 'fb-outro-win' : 'fb-outro-end');
+      q('.fb-outro-kicker').textContent = win ? 'Shift complete · Bot 106 made it out'
+                                              : 'Shift ended · Bot 106 powers down';
+      var rows = harvest(), ul = q('.fb-outro-tally');
+      ul.innerHTML = '';
+      for(var i=0;i<rows.length;i++){
+        var li = document.createElement('li');
+        li.innerHTML = '<i></i><b></b>';
+        li.firstChild.textContent = rows[i][0];
+        li.lastChild.textContent  = rows[i][1];
+        li.style.animationDelay = (reduced ? 0 : 60 + i*85) + 'ms';
+        ul.appendChild(li);
+      }
+      countTo(score);
+      paintRank(score);
+      if(win) sparks();
+      box.hidden = false;
+      /* The card grew: a landscape phone may now need to scroll to the retry
+         button, and the device layer cannot know that. Nudge it into view. */
+      settle = setTimeout(function(){
+        try{ var b = document.getElementById('retryBtn') || card.querySelector('button');
+             if(b && b.scrollIntoView) b.scrollIntoView({ block:'nearest' }); }catch(e){}
+      }, reduced ? 0 : 1500);
+    }
+
+    function hide(){
+      box.hidden = true;
+      document.body.classList.remove('fb-outro-on');
+      if(settle){ clearTimeout(settle); settle = null; }
+      land();
+    }
+    box.hidden = true;
+
+    /* skipping the ceremony: any tap or key lands the tally at once */
+    var skip = function(){ if(box.classList.contains('fb-outro-counting')) land(); };
+    try{
+      box.addEventListener('click', skip);
+      card.addEventListener('click', skip);
+      addEventListener('keydown', skip, true);
+    }catch(e){}
+
+    /* The overlay's reveal is a class or attribute change on the overlay (and on
+       mrbot, on the card). Watch both, and re-ask the question rather than
+       trusting which class moved. */
+    var on = false;
+    function evaluate(){
+      var live = visible(overlay) && !attrHidden(card) && !isStartCard();
+      if(live && !on){ on = true; show(); }
+      else if(!live && on){ on = false; hide(); }
+    }
+    try{
+      var mo = new MutationObserver(evaluate);
+      mo.observe(overlay, { attributes:true, attributeFilter:['class','style','hidden'] });
+      mo.observe(card,    { attributes:true, attributeFilter:['class','style','hidden'] });
+      /* A game that rebuilds the card AFTER revealing it would tear the ending
+         screen out from under a player who is looking at it. Watch the card's
+         own children and put it back. Re-inserting fires this observer again,
+         and the guard below makes that pass a no-op, so it cannot loop. */
+      new MutationObserver(function(){
+        if(on && box.parentNode !== card){ place(); show(); }
+      }).observe(card, { childList:true });
+    }catch(e){}
+    /* The chassis writes the score and THEN adds .show, so the observer is
+       enough; this one call covers a game that was already showing the card
+       when the layer bound (a reload onto a finished run). */
+    evaluate();
+
+    /* exposed for verify-outro.js: a gate must be able to ask the layer what it
+       did, rather than infer it from pixels. Reading it changes nothing. */
+    window.FB_OUTRO_STATE = function(){
+      return { live:on,
+               /* ON SCREEN, not merely built. verify-outro's own self-test
+                  caught this gate passing a layer that assembled the entire
+                  ending screen and left it hidden — the same shape as a draw
+                  path that runs and paints nothing. */
+               visible: !box.hidden && box.parentNode === card,
+               won:box.classList.contains('fb-outro-win'),
+               total:q('.fb-outro-total b').textContent,
+               rows:box.querySelectorAll('.fb-outro-tally li').length,
+               rank:!q('.fb-outro-rank').hidden, mode:MODE,
+               rankTitle:q('.fb-outro-title span').textContent,
+               bar:(q('.fb-outro-bar span').style.width||''),
+               counting:box.classList.contains('fb-outro-counting') };
+    };
+  }catch(e){ /* an ending screen must never break a game */ }
+})();
+</script>
+</body>
+</html>
