@@ -110,7 +110,8 @@ function parseCSV(text){
       gates:Number(c[idx['gates']]), status:(c[idx['status']]||'').trim().toUpperCase() }); }
   return out;
 }
-function shortAddr(a){ return a ? a.slice(0,4)+'…'+a.slice(-4) : '—'; }
+function esc(s){ return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }  /* F19: board values are DATA, never markup */
+function shortAddr(a){ return a ? esc(a.slice(0,4)+'…'+a.slice(-4)) : '—'; }
 
 function aggregate(rows){
   var by={};
@@ -132,11 +133,11 @@ function render(rows){
   var html='';
   rows.forEach(function(r,i){
     html+='<tr><td class="rank">'+(i+1)+'</td>'+
-      '<td class="who" title="Tap to copy" data-full="'+(r.wallet||'')+'">'+shortAddr(r.wallet)+'</td>'+
-      '<td class="num oil">'+r.oil+'</td>'+
-      '<td class="num">'+r.claims+'</td>'+
-      '<td class="num">'+(r.best||'—')+'</td>'+
-      '<td class="num">'+(r.last||'—')+'</td></tr>';
+      '<td class="who" title="Tap to copy" data-full="'+esc(r.wallet||'')+'">'+shortAddr(r.wallet)+'</td>'+
+      '<td class="num oil">'+esc(r.oil)+'</td>'+
+      '<td class="num">'+esc(r.claims)+'</td>'+
+      '<td class="num">'+esc(r.best||'—')+'</td>'+
+      '<td class="num">'+esc(r.last||'—')+'</td></tr>';
   });
   tb.innerHTML=html;
   Array.prototype.forEach.call(tb.querySelectorAll('.who'),function(el){
