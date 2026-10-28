@@ -177,7 +177,29 @@ canvas{ touch-action:none; }
   .modepill{ min-height:34px; }
 }
 
-
+/* ---- 9. STICKINESS FURNITURE -------------------------------------------
+   Rendered by the fb-sticky script: a personal-best chip in the topbar and a
+   "what happened this run" line on the run-over card. No wallet, no network,
+   no engine change — it reads the score the game already prints. */
+.fb-best{
+  display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+  font:800 11px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color:#f2a03d; background:rgba(242,160,61,.14);
+  border:1px solid rgba(242,160,61,.38); padding:4px 9px; border-radius:999px;
+}
+.fb-best i{ font-style:normal; opacity:.72; letter-spacing:.06em; }
+.fb-best b{ color:#fdf3e7; font-weight:800; }
+.fb-best.is-new{ color:#5fd6b4; background:rgba(95,214,180,.16); border-color:rgba(95,214,180,.45); }
+.fb-runline{ margin:8px 0 0; font:700 13px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+.fb-runline .go{ color:#5fd6b4; }
+.fb-runline .gap{ color:#f2a03d; }
+.fb-runline small{ display:block; font-weight:600; opacity:.7; font-size:11px; margin-top:3px; }
+/* On a phone the topbar is already lockup + title + mode pills + two icon
+   buttons; adding the chip pushed the game's own name out of its own bar. The
+   best score still appears where it actually drives a replay — the run-over
+   card — so the chip is a tablet-and-up affordance. */
+@media (max-width:620px){ .fb-best{ display:none; } }
+@media (orientation:landscape) and (max-height:560px){ .fb-best{ display:none; } }
 </style>
 <style id="fb-brand">
 /* ===== FINNBOTS BRAND LAYER v2 (2026-10-17; v1 2026-09-24) ============
@@ -1085,6 +1107,8 @@ try{var _bpIntro=new URLSearchParams(location.search);if(!_bpIntro.get('phantom_
      4. Enter / Space / Return restarts from the run-over card.  The single
         biggest drop-off in an arcade loop is the pause between runs — the
         fastest possible replay is the strongest retention feature there is.
+     5. A run WAITS while the player reads the "Paid" explainer.  See the
+        section at the end of this file.
    ========================================================================== */
 (function(){
   try{
@@ -1133,7 +1157,7 @@ try{var _bpIntro=new URLSearchParams(location.search);if(!_bpIntro.get('phantom_
                          '<small>best ' + fmt(best) + ' · run ' + runs + ' this session</small>';
       } else {
         best = score; save('best', best);
-        line.innerHTML = '<span class="go">First run banked</span>' +
+        line.innerHTML = '<span class="go">First score saved</span>' +
                          '<small>beat ' + fmt(best) + ' next time</small>';
       }
       paintChip(isNew);
@@ -1173,6 +1197,41 @@ try{var _bpIntro=new URLSearchParams(location.search);if(!_bpIntro.get('phantom_
         e.preventDefault();
       }
     }, true);
+  }catch(e){ /* stickiness must never break a game */ }
+})();
+
+/* ---- 5. A RUN WAITS WHILE THE PLAYER READS ---------------------------------
+   First-time-user QA, 2026-10-28: tapping "Paid · 25 OIL" opens the kid-safety
+   explainer (#confirmSheet) over a LIVE run. HOPBOT kept running behind it and
+   the player lost two lives — one hit by traffic, one to the clock — while
+   reading what "Paid" means. The sheet is identical on every paid game and no
+   game's loop looked at it.
+
+   The hold is one clock, not 32 loop edits. While the sheet is showing, the
+   frame timestamp AND performance.now() both stand still, so every engine sees
+   dt = 0: nothing moves, the clock does not tick, the screen still draws. When
+   the sheet closes both resume MINUS the time held. Both move together because
+   most engines seed `last = performance.now()` and then read the rAF timestamp:
+   shifting only one would hand them a negative dt after the first pause.
+   (Nothing else reads performance.now(): not the wallet libraries, not any
+   shared layer — checked 2026-10-28. Date.now() is untouched.)
+   Gate: check-pause.js drives each game in real Chrome and fails one whose run
+   moves while the sheet is open, or does not move again after it closes. */
+(function(){
+  try{
+    if(window.__fbHold) return;
+    var P = window.performance, RAF = window.requestAnimationFrame;
+    if(!P || typeof P.now !== 'function' || typeof RAF !== 'function') return;
+    var pnow = P.now.bind(P), raf = RAF.bind(window), off = 0, heldAt = null;
+    var holding = function(){ var c = document.getElementById('confirmSheet'); return !!(c && c.classList.contains('show')); };
+    var clock = function(t){
+      if(holding()){ if(heldAt === null) heldAt = t; return heldAt - off; }
+      if(heldAt !== null){ off += Math.max(0, t - heldAt); heldAt = null; }
+      return t - off;
+    };
+    P.now = function(){ return clock(pnow()); };
+    window.requestAnimationFrame = function(cb){ return raf(function(t){ return cb(clock(t)); }); };
+    window.__fbHold = { held: function(){ return heldAt !== null; } };
   }catch(e){ /* stickiness must never break a game */ }
 })();
 </script>
@@ -1427,7 +1486,7 @@ try{var _bpIntro=new URLSearchParams(location.search);if(!_bpIntro.get('phantom_
       for(var i=0;i<prior.length;i++) if(prior[i] > score) better++;
       var place = better + 1;
       var best = prior.length ? prior[0] : 0;
-      if(!prior.length) return { title:'ROOKIE BOT', note:'First run banked. Everything from here beats it.', frac: 0.5 };
+      if(!prior.length) return { title:'ROOKIE BOT', note:'First score saved. Every run from here can beat it.', frac: 0.5 };
       if(place === 1){
         return score > best
           ? { title:'PERSONAL BEST', note:'Your best run yet — the old one was <b>' + fmt(best) + '</b>.', frac: 1 }
@@ -1586,7 +1645,7 @@ try{var _bpIntro=new URLSearchParams(location.search);if(!_bpIntro.get('phantom_
           /* a board is published and nobody is on it. Say it plainly: a fact,
              with no call to action — this screen is seen by children. */
           MODE = 'empty';
-          paint(me.title, '', 'Nobody has banked a score on this board yet. ' + me.note, me.frac);
+          paint(me.title, '', 'Nobody has a score on this board yet. ' + me.note, me.frac);
         } else {
           MODE = 'personal';
           paint(me.title, '', me.note, me.frac);
