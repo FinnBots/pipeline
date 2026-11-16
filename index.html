@@ -531,6 +531,7 @@ body.is-portrait .fb-bot{ width:20px; height:20px; }
     <div id="overOverlay">
       <div class="card" id="overCard" role="dialog" aria-modal="true">
         <div class="big" id="oScore">0</div>
+        <p class="ovStats">Length <b id="ovLength">0</b> · Time <b id="ovTime">0s</b></p>
         <div class="prize" id="ovPrize"></div>
         <div class="pending" id="ovPending" hidden>Reward arrives with the next weekly $OIL batch — not instant.</div>
         <ul id="ovTerms" hidden></ul>
@@ -785,7 +786,7 @@ function setMode(v){ G.mode=v; G.phase=(v==='dead')?'dead':'play'; }
 function newRun(seed){
   const cy=Math.floor(ROWS/2);
   G={ phase:'play', mode:'playing', seed:((seed>>>0)||1),
-      snake:[], dir:{x:1,y:0}, nextDir:{x:1,y:0}, food:null, score:0, acc:0,
+      snake:[], dir:{x:1,y:0}, nextDir:{x:1,y:0}, food:null, score:0, acc:0, ms:0,
       inUp:false, inDown:false, inLeft:false, inRight:false, _turnScan:0 };
   for(let i=0;i<PARAMS.startLen;i++) G.snake.push({x:5-i,y:cy});
   spawnFood();
@@ -852,7 +853,7 @@ function stepGame(s, dtMs){
   if(G.mode!=='playing'){ G.acc=0; return ev; }
   let dt=Math.min(dtMs,250);
   G.acc+=dt; let g=0; const ms=tickMs();
-  while(G.acc>=ms && g++<8){ tick(); G.acc-=ms; if(G.mode!=='playing') break; }
+  while(G.acc>=ms && g++<8){ tick(); G.ms+=ms; G.acc-=ms; if(G.mode!=='playing') break; }   /* ms: game time played, for the ending card */
   return ev;
 }
 function onScore(head){ blip('score'); shake=Math.min(shake+2,4);
@@ -952,6 +953,10 @@ function showGameOver(){
   /* #oScore holds the number ALONE — the shared stickiness layer parses its
      textContent, so any prose in here would be read as part of the score. */
   document.getElementById('oScore').textContent = score;
+  /* the card's OWN stats: the shared ending screen counts these up as its tally (verify-outro, 2026-11-16) */
+  const mmss=s=>{s=Math.round(s);return s<60?s+'s':Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+  document.getElementById('ovLength').textContent = G.snake.length;
+  document.getElementById('ovTime').textContent = mmss((G.ms||0)/1000);
   document.getElementById('ovPrize').textContent = qualified
     ? `\u2713 you earned ${CFG.REWARD_OIL} OIL`
     : `${PARAMS.threshold-score} more pipes to earn ${CFG.REWARD_OIL} OIL`;
