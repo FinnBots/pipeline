@@ -2,7 +2,7 @@
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" id="fb-csp" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://finnstergram.com; font-src 'self' https://finnstergram.com; img-src 'self' data: https://finnstergram.com https://arweave.net https://*.arweave.net; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'">
+<meta http-equiv="Content-Security-Policy" id="fb-csp" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://finnstergram.com; font-src 'self' https://finnstergram.com; img-src 'self' data: https://finnstergram.com https://arweave.net https://*.arweave.net; connect-src 'self' https://finnbots.github.io; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PIPELINE — Earn board — FinnBots</title>
 <meta name="description" content="Who has banked the most $OIL playing PIPELINE and the other FinnBots quick-play games.">
@@ -97,6 +97,14 @@
    last claim date; ranks by $OIL then best gates. The faucet ledger is SHARED
    across all faucet games, so this board is faucet-wide. Zero RPC / zero wallet. */
 var CSV = 'earn_claims_index.csv';
+/* the cloud board first (FinnBots/finnbots-boards, published every 15 min; 2026-11-17 "fix the earn boards"), the copy
+   beside this page if that host fails — the same order as every paid board */
+var BOARDS = 'https://finnbots.github.io/finnbots-boards/boards/';
+function getBoard(name){
+  var bust = '?v='+Date.now();
+  return fetch(BOARDS+name+bust,{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('cloud '+r.status); return r; })
+    .catch(function(){ return fetch(name+bust,{cache:'no-store'}); });
+}
 var REWARD_OIL = 5;   // OIL per accepted faucet claim (matches the scanner faucet reward)
 
 function parseCSV(text){
@@ -145,7 +153,7 @@ function render(rows){
   });
 }
 
-fetch(CSV+'?v='+Date.now(),{cache:'no-store'})
+getBoard(CSV)
   .then(function(r){ if(!r.ok) throw new Error('no csv');
     var lm=r.headers.get('Last-Modified');
     document.getElementById('updated').textContent = lm ? ('Updated '+new Date(lm).toLocaleString('en-GB')) : 'Updated on each scanner run';
