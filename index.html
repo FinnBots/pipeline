@@ -191,6 +191,170 @@ canvas{ touch-action:none; }
   .modepill{ min-height:34px; }
 }
 
+/* ======================= chassis-only from here ========================== */
+
+/* ---- LEGACY CLASS ALIASES ------------------------------------------------
+   This layer is INSTALLED on 22 games and, until now, partially INERT on five
+   of them, because it only ever named the current chassis's classes:
+     Mr Bot    has `.app` and `.actions`, no `.wrap` and no `.controls`
+     Bot Merge, FlappyBot   have `.actions`, no `.controls`
+     Bot Pong  has no `.wrap`
+   Every `.wrap` / `.controls` / `.foot` rule below simply did not match them —
+   the layer was present, byte-identical to this template, and doing nothing.
+   That is the same shape as the stickiness layer being installed and dead on
+   five games (2026-10-01), and it is why the aliases are carried here rather
+   than renaming markup in a live paid game. */
+/* ---- 4. the shell is one screen tall, insets respected ------------------- */
+.wrap, .app{ min-height:100svh; padding-left:max(var(--fb-safe-l), 8px); padding-right:max(var(--fb-safe-r), 8px); }
+@supports (height:100dvh){ .wrap, .app{ min-height:100dvh; } }
+.topbar{ padding-top:var(--fb-safe-t); }
+.controls, .actions{ padding-bottom:max(var(--fb-safe-b), 2px); }
+/* The game's NAME outranks everything else in its bar. With the daily chip and the
+   Free/Paid pills in one row, 25 games' names were cut on a 375px phone — LINKBOT,
+   BOTWORD, SUMBOT to one letter — and four more on a tablet; Mr Bot's on a laptop
+   too (its .app column is 520px). First-time-user QA, 2026-10-28; check-controls.js
+   TITLE CUT. The title never shrinks; the bar may wrap, and the daily chip is the
+   first thing to move to a second line. A bar that fits stays one line: wrap only
+   acts on an overflow, so no screen that was fine changes. */
+.topbar{ flex-wrap:wrap; row-gap:4px; }
+.topbar .title{ flex:1 0 auto; }   /* basis = its text: many games set flex:1 (basis 0), so no-shrink alone left it the leftovers */
+.topbar .fb-seed{ order:99; }
+
+
+/* NOTE on the [class] attribute selectors below: a game's own rule for
+   `.controls.twothumb` is specificity (0,2,0) and beats a bare `.controls`
+   however late this file lands. `.controls[class]` is also (0,2,0), so source
+   order decides and the shared layer wins — which is the whole point of having
+   one. Prefer this to !important, which the roster has been bitten by before
+   (an old per-game override winning over a new shared rule, Mr Bot 2026-09-24). */
+
+/* ---- 5. PHONE, PORTRAIT — trim chrome, the canvas takes the rest --------- */
+@media (max-width:560px) and (orientation:portrait){
+  .foot, .footer{ display:none; }
+  .wrap, .app{ padding-top:4px; gap:4px; }
+  .surface{ padding:0; }
+  .hud{ font-size:11px; padding:2px 8px; min-height:22px; }
+  .controls[class], .actions[class]{ gap:10px; }
+  .controls[class] .ctl, .actions[class] .ctl{ min-width:54px; min-height:54px; }   /* thumbs, not cursors */
+  .controls[class] .ctl.fire, .actions[class] .ctl.fire{ width:64px; height:64px; }
+}
+
+/* ---- 6. PHONE, LANDSCAPE — the case that was actually unplayable ---------
+   A phone on its side has ~350px of height. The old column (topbar + facts +
+   hud + canvas + controls + footer) left the canvas a letterbox slit. Here the
+   chrome collapses to one thin line, the controls become a short rail, and the
+   play surface gets everything else. The HUD is kept but flattened — hiding it
+   would take the score away from the games that do not draw their own. */
+@media (orientation:landscape) and (max-height:560px){
+  .wrap, .app{ padding:2px max(var(--fb-safe-r),6px) 2px max(var(--fb-safe-l),6px); gap:2px; }
+  .foot, .footer{ display:none; }
+  body:not(.mode-paid) .facts{ display:none; }
+  .topbar{ min-height:0; gap:6px; }
+  .title{ font-size:13px; }
+  .hud{ font-size:10px; padding:1px 6px; min-height:0; }
+  .surface{ padding:0; }
+  /* The controls move OUT OF FLOW into the side gutters. A portrait-ish canvas
+     on a landscape phone is height-bound, so the width either side of it is dead
+     space — and that dead space is exactly where the thumbs already are. Taking
+     the control row out of the column gives the canvas the full height instead:
+     Measured on a 812x375 phone: 306x245 -> 394x345, +81% of play area.
+     Movement stays under the left thumb, action under the right. */
+  .controls[class], .actions[class]{
+    position:fixed; inset:0; z-index:30; margin:0; max-width:none;
+    padding:0 max(var(--fb-safe-r),10px) calc(10px + var(--fb-safe-b)) max(var(--fb-safe-l),10px);
+    display:flex; align-items:flex-end; justify-content:space-between;
+    background:none; pointer-events:none;
+  }
+  .controls[class], .actions[class] > *{ pointer-events:auto; }
+  .controls[class] .ctl, .actions[class] .ctl{ min-width:46px; min-height:46px; font-size:13px; }
+  .controls[class] .ctl.fire, .actions[class] .ctl.fire{ width:54px; height:54px; font-size:10px; }
+  .controls[class] .dpad .ctl, .actions[class] .dpad .ctl{ min-width:42px; min-height:42px; }
+}
+
+/* ---- 7. TABLET — a bigger hand wants bigger keys ------------------------ */
+@media (min-width:700px) and (pointer:coarse){
+  .controls[class] .ctl, .actions[class] .ctl{ min-width:62px; min-height:62px; }
+  .controls[class] .ctl.fire, .actions[class] .ctl.fire{ width:78px; height:78px; }
+  .controls[class], .actions[class]{ gap:16px; }
+}
+
+/* ---- 8. LAPTOP / DESKTOP — a cursor is not a thumb -----------------------
+   Sections 3, 5, 6 and 7 size the on-screen pad for fingers. Nothing ever
+   turned that off for a pointer that IS a cursor, so a laptop kept thumb-sized
+   keys it never needed. Measured at 1440x900 across the served roster: ten
+   games carry a control block over 90px tall — RIVETBOT 152, BOTMAN/BURROBOT/
+   Mrs Bot 142, BotFord/DRUM PUSH/HOPBOT 136 — and every one of those canvases
+   is HEIGHT-BOUND, so each pixel of pad comes straight out of the play area.
+   The pad stays (people do click it), it just stops being a thumb rest.
+   Measured gain: +4.6% to +8.5% canvas height on eight games, and because the
+   canvas is ratio-locked that is +9% to +18% of PLAY AREA.
+   Scoped to `pointer:fine` so phones and tablets, which report `coarse`, are
+   untouched; and to a window with room to spare, so a small laptop window is
+   not made worse. `.controls[class]` is (0,2,0) for the same reason the rest of
+   this file uses it — an old per-game override must not win over a shared rule
+   (Mr Bot, 2026-09-24).
+
+   !important is used here and nowhere else in this file, deliberately. Two
+   games proved specificity alone is not enough: BOTMAN carries a per-game
+   `.dpad{...!important}` from an older pass, and HOVERBOT has no `.dpad` at all
+   (its pad is `.controls.twohand` with direct children). A shared rule losing
+   to an old per-game override is the exact failure this file already documents,
+   so section 8 asserts itself — it is tightly media-scoped, so it can only ever
+   apply to a mouse-driven window with room to spare.
+
+   ONLY EVER SHRINK. The first version set `.ctl{min-width:40px; min-height:32px;
+   padding:4px 8px}`, which is a floor — and BOTRUN's racer pedals were already
+   SMALLER than that, so the rule meant to reclaim space grew its controls
+   62px -> 74px and cost it 2% of canvas. A rule that reclaims space must be
+   purely subtractive, so this touches only the two things that are always
+   bigger than they need to be on a mouse: the pad's own grid tracks, and the
+   padding around the row. Nothing here can make any control larger. */
+@media (pointer:fine) and (min-width:900px) and (min-height:700px){
+  .controls[class], .actions[class]{ gap:8px !important; padding-top:2px !important; padding-bottom:2px !important; }
+  .controls[class] .dpad, .actions[class] .dpad{ gap:4px !important;
+                          grid-template-columns:repeat(3,40px) !important;
+                          grid-template-rows:repeat(3,32px) !important; }
+}
+
+/* ---- 8b. A KEY IS ITS OWN TARGET — pad keys never overlap on a touch screen --
+   First-time-user QA, 2026-10-28. Sections 5, 6 and 7 grow every key to a thumb
+   target (54px, the centre key 64px) — but the GRID the keys sit in is the
+   game's own, sized for the old keys (HOPBOT 44x40 cells, Mr Bot 40x34). The keys
+   spilled out of their cells and over each other: in HOPBOT the right edge of ◀
+   was GO (hop forward, into traffic); in BOTMAN the centre key is MUTE, so a
+   child steering down or right muted the game. 26 device rows on 11 games,
+   measured by check-controls.js in real Chrome; every byte-pin passed.
+
+   The fix is count-agnostic, because every pad on the roster places its keys by
+   an explicit grid-area: drop the game's fixed tracks and let the implicit
+   tracks size themselves (grid-auto-*). A track can then never be smaller than
+   the key in it, so two keys cannot share a pixel — by construction, whatever
+   shape the pad is (3x3 cross, 2x2 diamond, HOVERBOT's 2-column cluster).
+     .dpad          is a grid on EVERY game, so its keys also get one exact size
+                    (the centre key included): a 64px centre made the pad taller
+                    than the screen had room for.
+     .cluster.move  is a grid on HOVERBOT and FLEX on WINGBOT/BubbleBot. Only the
+                    track properties are set — inert on a flex row — never a
+                    key size, which on a flex row would shrink keys to their text.
+
+   !important for the reason section 8 gives: per-game `.dpad{...}` rules from
+   older passes (BOTMAN, RIVETBOT) re-declare the tracks and would otherwise win.
+   Scoped to touch and to small screens only; section 8 (a mouse with room to
+   spare) cannot match at the same time, so the laptop pad is untouched. */
+@media (pointer:coarse), (max-width:560px), (orientation:landscape) and (max-height:560px){
+  .controls[class], .actions[class]{ --fb-key:52px; }
+  .controls[class] .dpad, .actions[class] .dpad,
+  .controls[class] .cluster.move, .actions[class] .cluster.move{
+    grid-template-columns:none !important; grid-template-rows:none !important;
+    grid-auto-columns:max-content !important; grid-auto-rows:max-content !important; }
+  .controls[class] .dpad, .actions[class] .dpad{ gap:4px !important; }
+  .controls[class] .dpad > *, .actions[class] .dpad > *{
+    width:var(--fb-key) !important; height:var(--fb-key) !important;
+    min-width:0 !important; min-height:0 !important; margin:0 !important; }
+}
+@media (orientation:landscape) and (max-height:560px){ .controls[class], .actions[class]{ --fb-key:44px; } }
+@media (min-width:700px) and (min-height:561px) and (pointer:coarse){ .controls[class], .actions[class]{ --fb-key:60px; } }
+
 /* ---- 9. STICKINESS FURNITURE -------------------------------------------
    Rendered by the fb-sticky script: a personal-best chip in the topbar and a
    "what happened this run" line on the run-over card. No wallet, no network,
@@ -491,6 +655,13 @@ body.is-portrait .fb-bot{ width:20px; height:20px; }
 .fb-coach-how::before{ content:"\25B6\FE0E  "; font-size:.8em; }
 .fb-coach-out{ opacity:0; transform:translateX(-50%) translateY(-8px); }
 @keyframes fb-coach-in{ from{ transform:translateX(-50%) translateY(10px); } }   /* position only: a stalled animation (a background tab, a throttled timeline) must still SHOW the box */
+/* placed in free space beside the board by coach-layer.js (data-fb-at = above|below|left|right) */
+.fb-coach.fb-coach-at{ transform:none; animation-name:fb-coach-in-at; }
+.fb-coach.fb-coach-at.fb-coach-out{ transform:translateY(-8px); }
+.fb-coach.fb-coach-tight{ padding:5px 12px 6px; gap:1px; border-radius:10px; box-shadow:3px 3px 0 0 rgba(0,0,0,.45); }
+.fb-coach-tight .fb-coach-goal{ font-size:clamp(15px,4vw,18px); }
+.fb-coach-tight .fb-coach-how{ font-size:clamp(12px,3.2vw,13px); }
+@keyframes fb-coach-in-at{ from{ transform:translateY(10px); } }
 @media (prefers-reduced-motion: reduce){ .fb-coach{ animation:none; transition:none; } }
 </style>
 </head>
@@ -1259,7 +1430,15 @@ if(HEADLESS) module.exports={ CFG, PARAMS, newRun, stepGame };
     var P = window.performance, RAF = window.requestAnimationFrame;
     if(!P || typeof P.now !== 'function' || typeof RAF !== 'function') return;
     var pnow = P.now.bind(P), raf = RAF.bind(window), off = 0, heldAt = null;
-    var holding = function(){ var c = document.getElementById('confirmSheet'); return !!(c && c.classList.contains('show')); };
+    /* 6. ...AND UNTIL THE FIRST TOUCH (2026-11-20, the first-minute review: SUMBOT's round clock — which pays 2 points for
+       every second left — and the clocks of BOTWORD, LINKBOT and JAMBOT ran down while a first-time player read the
+       coach's goal line, and Flappy Bot killed a player who had not touched it yet). Nothing moves until the player's
+       first touch, click or key; the coach stays up until then as the start card. A wallet return resumes at once. */
+    var touched = false;
+    try { touched = /[?&](phantom_action=|src=browse\b)/.test(location.search || ''); } catch (e) { touched = true; }
+    var touch = function(){ touched = true; ['pointerdown','touchstart','keydown'].forEach(function(ev){ document.removeEventListener(ev, touch, true); }); };
+    if(!touched) ['pointerdown','touchstart','keydown'].forEach(function(ev){ document.addEventListener(ev, touch, true); });
+    var holding = function(){ if(!touched) return true; var c = document.getElementById('confirmSheet'); return !!(c && c.classList.contains('show')); };
     var clock = function(t){
       if(holding()){ if(heldAt === null) heldAt = t; return heldAt - off; }
       if(heldAt !== null){ off += Math.max(0, t - heldAt); heldAt = null; }
@@ -1267,7 +1446,7 @@ if(HEADLESS) module.exports={ CFG, PARAMS, newRun, stepGame };
     };
     P.now = function(){ return clock(pnow()); };
     window.requestAnimationFrame = function(cb){ return raf(function(t){ return cb(clock(t)); }); };
-    window.__fbHold = { held: function(){ return heldAt !== null; } };
+    window.__fbHold = { held: function(){ return heldAt !== null; }, waiting: function(){ return !touched; } };
   }catch(e){ /* stickiness must never break a game */ }
 })();
 </script>
@@ -2267,7 +2446,7 @@ var FB_FAMILY_CODEC = (function(){
       clicking #rulesClose, so the game's own close handler runs — and drop the focus that handler puts on the info
       button (a Space press would otherwise open the card again). The full rules stay one tap away behind the info
       button; nothing in them is removed.
-   2. Show TWO lines over the live game: the goal and the one control, from the site's own data
+   2. Show TWO lines beside the live game (3. below says where): the goal and the one control, from the site's own data
       (website/data/games.json `short` + `controls`, written onto this tag by apply-coach.js). It never blocks a tap
       (pointer-events: none) and it fades on the first touch, click or key, or after 9 seconds.
    It does nothing on a wallet return (?phantom_action= or ?src=browse): that path belongs to the wallet layer.
@@ -2315,15 +2494,100 @@ var FB_FAMILY_CODEC = (function(){
   var g = document.createElement('b'); g.className = 'fb-coach-goal'; g.textContent = goal; box.appendChild(g);
   if (hint) { var h = document.createElement('span'); h.className = 'fb-coach-how'; h.textContent = hint; box.appendChild(h); }
   document.body.appendChild(box);
+
+  /* 3. WHERE: in free space, never over the game (2026-11-20 — measured on every game: at phone size the box covered the
+     top 44-93px of the board on 31 of 37 games — SUMBOT's target, BOTWORD's first row, BOTMAN's maze — while 80-220px of
+     the screen above or below the board sat empty; on laptop and landscape it covered every board, with the room BESIDE
+     it). The board is the largest canvas on screen. Bands are tried in order — above it, below it, left, right — and a
+     spot is free only when every sampled point hits the page's own background (body, or a wrapper as big as a third of
+     the screen): never the board, the top bar, a control or a word — the full box first, then a SLIM one. No free spot
+     (a tablet, where the board fills the screen): the slim box over the top bar (data-fb-at="bar"). Only if even that
+     would touch the board does it sit over the game — as high as it goes, over the board's top edge, never its middle —
+     and says so (data-fb-at="over"); verify-coach --screen measures how much of the board it covers. */
+  function board() {
+    var best = null, area = 0;
+    [].slice.call(document.querySelectorAll('canvas')).forEach(function (c) {
+      var r = c.getBoundingClientRect(), a = r.width * r.height;
+      if (a > area && r.width > 100 && r.height > 100 && r.bottom > 0 && r.top < innerHeight) { best = r; area = a; }
+    });
+    return best;
+  }
+  function free(x, y, w, h) {
+    var W = innerWidth, H = innerHeight, big = W * H / 3;
+    if (x < 0 || y < 0 || x + w > W || y + h > H) return false;
+    for (var i = 0; i < 5; i++) for (var j = 0; j < 3; j++) {
+      var px = x + 2 + (w - 4) * i / 4, py = y + 2 + (h - 4) * j / 2, el = document.elementFromPoint(px, py);
+      if (!el || el === document.body || el === document.documentElement) continue;
+      if (el.tagName === 'CANVAS') return false;
+      var r = el.getBoundingClientRect();
+      if (r.width * r.height < big) return false;
+    }
+    return true;
+  }
+  function place() {
+    if (gone || !box.parentNode) return;
+    var c = board(); if (!c) return;
+    var W = innerWidth, H = innerHeight, cx = (c.left + c.right) / 2, cy = (c.top + c.bottom) / 2;
+    var bands = [
+      { x0: 0, x1: W, y0: 0, y1: c.top, ys: function (h, M) { return [c.top - M - h, (c.top - h) / 2, M]; } },
+      { x0: 0, x1: W, y0: c.bottom, y1: H, ys: function (h, M) { return [c.bottom + M, (c.bottom + H - h) / 2, H - M - h]; } },
+      { x0: 0, x1: c.left, y0: 0, y1: H, ys: function (h) { return [cy - h / 2, c.top, c.bottom - h]; } },
+      { x0: c.right, x1: W, y0: 0, y1: H, ys: function (h) { return [cy - h / 2, c.top, c.bottom - h]; } }
+    ];
+    box.style.visibility = 'hidden';
+    box.classList.add('fb-coach-at');
+    for (var t = 0; t < 2; t++) {                       /* the full box, then the slim one */
+      box.classList.toggle('fb-coach-tight', t === 1);
+      var M = t ? 4 : 8;
+      for (var b = 0; b < bands.length; b++) for (var mw = 420; mw >= 210; mw -= 105) {   /* wide, then narrower: a gap between two pads */
+        var B = bands[b], bw = B.x1 - B.x0 - 2 * M;
+        if (bw < 200 || B.y1 - B.y0 < 40) continue;
+        box.style.maxWidth = Math.min(bw, mw) + 'px'; box.style.left = '0px'; box.style.top = '0px';
+        var w = box.offsetWidth, h = box.offsetHeight;
+        if (h > B.y1 - B.y0 - 2 * M || h > (t ? 92 : 128)) continue;   /* never a tall thin column of words */
+        var x = b < 2 ? Math.max(B.x0 + M, Math.min(B.x1 - M - w, cx - w / 2)) : B.x0 + (B.x1 - B.x0 - w) / 2;
+        var ys = B.ys(h, M);
+        for (var k = 0; k < ys.length; k++) {
+          var y = Math.max(B.y0 + M, Math.min(B.y1 - M - h, ys[k]));
+          if (free(x, y, w, h)) { put(x, y, ['above', 'below', 'left', 'right'][b]); return; }
+        }
+      }
+    }
+    /* no free spot (a tablet: the board fills the screen, as it should): the slim box over the TOP BAR — the title and
+       the Free/Paid strip are covered for a few seconds, never the game. Allowed only if it stays off the board. */
+    box.style.maxWidth = Math.min(W - 8, 420) + 'px'; box.style.left = '0px'; box.style.top = '0px';
+    var w2 = box.offsetWidth, h2 = box.offsetHeight;
+    var x2 = Math.max(4, Math.min(W - 4 - w2, cx - w2 / 2));
+    if (c.top - 2 - h2 >= 2) { put(x2, Math.max(2, (c.top - h2) / 2), 'bar'); return; }
+    /* still no room: as high as it goes, so it covers the board's top EDGE (its frame) rather than its middle, and
+       says so — verify-coach --screen measures how much of the board it covers */
+    put(x2, 2, 'over');
+  }
+  function put(x, y, at) {
+    box.style.left = Math.round(x) + 'px'; box.style.top = Math.round(y) + 'px';
+    box.setAttribute('data-fb-at', at); box.style.visibility = '';
+  }
+  try { place(); } catch (e) { box.style.visibility = ''; }
+  var again = function () { try { place(); } catch (e) { box.style.visibility = ''; } };
+  if (window.requestAnimationFrame) requestAnimationFrame(again);
+  setTimeout(again, 300); setTimeout(again, 1200);
+  window.addEventListener('resize', again);
+  window.addEventListener('load', again);
+
   var gone = false;
   function hide() {
     if (gone) return; gone = true;
+    window.removeEventListener('resize', again);
     box.classList.add('fb-coach-out');
     setTimeout(function () { if (box.parentNode) box.parentNode.removeChild(box); }, 400);
     ['pointerdown', 'touchstart', 'keydown'].forEach(function (ev) { document.removeEventListener(ev, hide, true); });
   }
   ['pointerdown', 'touchstart', 'keydown'].forEach(function (ev) { document.addEventListener(ev, hide, true); });
-  setTimeout(hide, 9000);
+  /* gone by itself after 9 s — unless the run is still WAITING for the first touch (stickiness.js section 6): then the
+     coach IS the start card, and taking it away would leave a frozen game with nothing saying what to do */
+  (function auto() { setTimeout(function () {
+    if (window.__fbHold && window.__fbHold.waiting && window.__fbHold.waiting()) return auto();
+    hide(); }, 9000); })();
 })();
 </script>
 <script defer id="fb-beacon" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "b11bf18cfe07453484c01ca2d417e772"}'></script>
